@@ -7,6 +7,10 @@
 
 This branch adds GitHub Copilot as an AI model option in the sidebar AI panel.
 
+### Screenshot
+
+![Copilot Integration in action](images/copilot-integration.png)
+
 ### Features
 
 - **GitHub Copilot CLI integration**: Uses `gh copilot` command for queries
@@ -107,10 +111,6 @@ gh auth login
 ```bash
 gh auth refresh
 ```
-
-### Screenshots
-
-[Add your screenshots here]
 
 ---
 
