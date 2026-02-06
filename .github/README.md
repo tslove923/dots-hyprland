@@ -9,36 +9,36 @@ This is a fork of end-4's excellent dots-hyprland configuration with custom feat
 
 Each feature is developed in its own branch with detailed documentation:
 
-### 🔒 [VPN Indicator](../../tree/feature/vpn-indicator)
+### 🔒 [VPN Indicator](https://github.com/tslove923/dots-hyprland/tree/feature/vpn-indicator)
 Adds a real-time VPN status indicator to the Quickshell bar.
 
 - Green icon when connected, grey when disconnected
 - Click to toggle VPN connection
 - Supports OpenVPN, WireGuard, and tun0 interfaces
 
-**Branch**: [`feature/vpn-indicator`](../../tree/feature/vpn-indicator)
+**Branch**: [`feature/vpn-indicator`](https://github.com/tslove923/dots-hyprland/tree/feature/vpn-indicator)
 
 ---
 
-### 🤖 [GitHub Copilot Integration](../../tree/feature/copilot-integration)
+### 🤖 [GitHub Copilot Integration](https://github.com/tslove923/dots-hyprland/tree/feature/copilot-integration)
 Integrates GitHub Copilot as an AI model in the sidebar panel.
 
 - Uses gh CLI for authentication
 - No API key required (uses your Copilot subscription)
 - Custom icon and seamless integration
 
-**Branch**: [`feature/copilot-integration`](../../tree/feature/copilot-integration)
+**Branch**: [`feature/copilot-integration`](https://github.com/tslove923/dots-hyprland/tree/feature/copilot-integration)
 
 ---
 
-### ⌨️ [Custom Keybindings](../../tree/feature/custom-keybinds)
+### ⌨️ [Custom Keybindings](https://github.com/tslove923/dots-hyprland/tree/feature/custom-keybinds)
 Personalized Hyprland keyboard shortcuts.
 
 - VPN toggle shortcut
 - Workspace management enhancements
 - Quick access to common tools
 
-**Branch**: [`feature/custom-keybinds`](../../tree/feature/custom-keybinds)
+**Branch**: [`feature/custom-keybinds`](https://github.com/tslove923/dots-hyprland/tree/feature/custom-keybinds)
 
 ---
 
