@@ -1,0 +1,14 @@
+[Unit]
+Description=AI Assistant Wake Word Detection Service
+After=sound.target
+
+[Service]
+Type=simple
+ExecStart=%h/projects/dots-hyprland-dev/ai-assistant/wake-word/wake_word_detector.py
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
