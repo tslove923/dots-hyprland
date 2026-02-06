@@ -2,6 +2,7 @@
 """
 NPU-Accelerated Wake Word Detection Service
 Uses OpenVINO for Intel NPU acceleration, inspired by voxd-npu architecture
+Coordinates microphone access with voxd to prevent conflicts
 """
 
 import os
@@ -15,6 +16,15 @@ import socket
 import json
 import onnx
 from typing import Optional
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from common.audio_manager import AudioResourceManager
+    AUDIO_COORDINATION = True
+except ImportError:
+    print("⚠️  Audio coordination not available (common/audio_manager.py missing)")
+    AUDIO_COORDINATION = False
 
 # Configuration
 WAKE_WORDS = ["hey_assistant"]  # ONNX model names
@@ -43,6 +53,14 @@ class NPUWakeWordDetector:
         self.device = DEVICE
         self.actual_device = None
         self.models = {}
+        self.paused = False
+        
+        # Audio resource coordination
+        if AUDIO_COORDINATION:
+            self.audio_manager = AudioResourceManager('wake_word')
+            print("✅ Audio coordination enabled")
+        else:
+            self.audio_manager = None
         
         # Initialize OpenVINO
         self._initialize_openvino()
@@ -299,7 +317,14 @@ class NPUWakeWordDetector:
         print(f"🔥 EVENT: {event_type}")
     
     def run(self):
-        """Main detection loop"""
+        """Main detection loop with audio coordination"""
+        
+        # Request microphone access
+        if self.audio_manager:
+            if not self.audio_manager.request_access(blocking=True, timeout=10.0):
+                print("❌ Could not get microphone access!")
+                return
+        
         stream = self.audio.open(
             format=FORMAT,
             channels=CHANNELS,
@@ -313,9 +338,24 @@ class NPUWakeWordDetector:
         print(f"   Device: {self.actual_device}")
         print(f"   Models: {WAKE_WORDS}")
         print(f"   Threshold: {THRESHOLD}")
+        if self.audio_manager:
+            print(f"   Audio coordination: ✅ Enabled")
         
         try:
             while True:
+                # Check if we should pause for voxd
+                if self.audio_manager and self.audio_manager.should_pause():
+                    if not self.paused:
+                        print("⏸️  Pausing for voxd recording...")
+                        self.paused = True
+                    time.sleep(0.1)  # Wait while voxd is recording
+                    continue
+                elif self.paused:
+                    print("▶️  Resuming wake word detection...")
+                    self.paused = False
+                    # Re-request access
+                    self.audio_manager.request_access()
+                
                 # Read audio chunk
                 audio_data = stream.read(CHUNK_SIZE, exception_on_overflow=False)
                 audio_array = np.frombuffer(audio_data, dtype=np.int16)
@@ -348,6 +388,12 @@ class NPUWakeWordDetector:
             stream.stop_stream()
             stream.close()
             self.audio.terminate()
+            
+            # Release microphone access
+            if self.audio_manager:
+                self.audio_manager.release_access()
+                print("✅ Released microphone access")
+            
             if os.path.exists(SOCKET_PATH):
                 os.unlink(SOCKET_PATH)
 

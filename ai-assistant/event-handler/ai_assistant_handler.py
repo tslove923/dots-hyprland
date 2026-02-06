@@ -2,6 +2,7 @@
 """
 AI Assistant Event Handler
 Coordinates wake word detection → voxd activation → AI panel display
+Manages microphone access coordination
 """
 
 import os
@@ -13,6 +14,15 @@ import signal
 from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from common.audio_manager import notify_voxd_start, notify_voxd_stop
+    AUDIO_COORDINATION = True
+except ImportError:
+    print("⚠️  Audio coordination not available")
+    AUDIO_COORDINATION = False
 
 # Configuration
 TRIGGER_FILE = "/tmp/ai-assistant-triggered"
@@ -62,6 +72,11 @@ class AIAssistantHandler(FileSystemEventHandler):
         """Start voxd in streaming mode"""
         print("🎙️  Starting voxd streaming...")
         
+        # Notify audio manager that voxd is starting (pauses wake word)
+        if AUDIO_COORDINATION:
+            notify_voxd_start()
+            print("   Wake word detector paused")
+        
         # Send command to voxd socket to start recording
         # This is a placeholder - actual voxd API needs investigation
         try:
@@ -85,6 +100,11 @@ class AIAssistantHandler(FileSystemEventHandler):
                           capture_output=True)
         except Exception as e:
             print(f"Error stopping voxd: {e}")
+        
+        # Notify audio manager that voxd finished (resumes wake word)
+        if AUDIO_COORDINATION:
+            notify_voxd_stop()
+            print("   Wake word detector resumed")
     
     def on_modified(self, event):
         """Handle wake word trigger file changes"""

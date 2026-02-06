@@ -48,9 +48,7 @@ MouseArea {
         Resource {
             iconName: "stadia_controller"
             percentage: ResourceUsage.gpuUsage
-            shown: ResourceUsage.gpuAvailable && (Config.options.bar.resources.alwaysShowGpu || 
-                !(MprisController.activePlayer?.trackTitle?.length > 0) ||
-                root.alwaysShowAllResources)
+            shown: ResourceUsage.gpuAvailable
             Layout.leftMargin: shown ? 6 : 0
             warningThreshold: Config.options.bar.resources.gpuWarningThreshold
         }
@@ -58,9 +56,7 @@ MouseArea {
         Resource {
             iconName: "neurology"
             percentage: ResourceUsage.npuUsage
-            shown: ResourceUsage.npuAvailable && (Config.options.bar.resources.alwaysShowNpu || 
-                !(MprisController.activePlayer?.trackTitle?.length > 0) ||
-                root.alwaysShowAllResources)
+            shown: ResourceUsage.npuAvailable
             Layout.leftMargin: shown ? 6 : 0
             warningThreshold: Config.options.bar.resources.npuWarningThreshold
         }

@@ -244,8 +244,8 @@ Singleton {
                 property JsonObject resources: JsonObject {
                     property bool alwaysShowSwap: true
                     property bool alwaysShowCpu: true
-                    property bool alwaysShowGpu: false
-                    property bool alwaysShowNpu: false
+                    property bool alwaysShowGpu: true
+                    property bool alwaysShowNpu: true
                     property int memoryWarningThreshold: 95
                     property int swapWarningThreshold: 85
                     property int cpuWarningThreshold: 90

@@ -155,50 +155,7 @@ Singleton {
             LANG: "C",
             LC_ALL: "C"
         })
-        command: ["bash", "-c", `
-            # Try intel_gpu_top for i915 driver
-            if which intel_gpu_top > /dev/null 2>&1; then
-                result=$(intel_gpu_top -J -s 100 2>/dev/null | head -1)
-                if [ -n "$result" ] && echo "$result" | grep -q engines; then
-                    echo "$result"
-                    exit 0
-                fi
-            fi
-            
-            # Fallback for Xe driver - monitor via fdinfo and power state
-            if [ -e /sys/class/drm/card0/device/power_state ]; then
-                power_state=$(cat /sys/class/drm/card0/device/power_state)
-                
-                # Get active GPU clients from fdinfo
-                total_usage=0
-                count=0
-                for fdinfo in /proc/*/fdinfo/*; do
-                    if [ -f "$fdinfo" ]; then
-                        client=$(grep -h "drm-client-id" "$fdinfo" 2>/dev/null)
-                        if [ -n "$client" ]; then
-                            # Found a DRM client, check for usage
-                            usage=$(grep "drm-engine-render" "$fdinfo" 2>/dev/null | awk '{print $2}')
-                            if [ -n "$usage" ]; then
-                                count=$((count + 1))
-                            fi
-                        fi
-                    fi
-                done
-                
-                # Simple heuristic: D0 + active clients = estimate usage
-                if [ "$power_state" = "D0" ] && [ $count -gt 0 ]; then
-                    # Estimate 30% base usage when active with clients
-                    echo "xe_active:$count"
-                elif [ "$power_state" = "D0" ]; then
-                    echo "xe_idle"
-                else
-                    echo "xe_suspended"
-                fi
-                exit 0
-            fi
-            
-            echo "unavailable"
-        `]
+        command: ["bash", "-c", "if which intel_gpu_top > /dev/null 2>&1; then result=$(intel_gpu_top -J -s 100 2>/dev/null | head -1); if [ -n \"$result\" ] && echo \"$result\" | grep -q engines; then echo \"$result\"; exit 0; fi; fi; if [ -e /sys/class/drm/card0/device/power_state ]; then power_state=$(cat /sys/class/drm/card0/device/power_state); count=0; for fdinfo in /proc/*/fdinfo/*; do if [ -f \"$fdinfo\" ]; then if grep -q \"drm-client-id\" \"$fdinfo\" 2>/dev/null; then count=$((count + 1)); fi; fi; done; if [ \"$power_state\" = \"D0\" ] && [ $count -gt 0 ]; then echo \"xe_active:$count\"; elif [ \"$power_state\" = \"D0\" ]; then echo \"xe_idle\"; else echo \"xe_suspended\"; fi; exit 0; fi; echo \"unavailable\""]
         running: false
         stdout: StdioCollector {
             id: gpuOutputCollector
