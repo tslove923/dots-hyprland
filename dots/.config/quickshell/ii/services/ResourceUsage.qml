@@ -138,7 +138,9 @@ Singleton {
         }
     }
 
-    // GPU monitoring - supports both i915 (intel_gpu_top) and Xe (sysfs) drivers
+    // GPU monitoring - supports both i915 (intel_gpu_top) and Xe (fdinfo) drivers
+    property var previousGpuCycles: ({})
+    
     Timer {
         id: gpuMonitorTimer
         interval: 3000
@@ -155,7 +157,7 @@ Singleton {
             LANG: "C",
             LC_ALL: "C"
         })
-        command: ["bash", "-c", "if which intel_gpu_top > /dev/null 2>&1; then result=$(intel_gpu_top -J -s 100 2>/dev/null | head -1); if [ -n \"$result\" ] && echo \"$result\" | grep -q engines; then echo \"$result\"; exit 0; fi; fi; if [ -e /sys/class/drm/card0/device/power_state ]; then power_state=$(cat /sys/class/drm/card0/device/power_state); count=0; for fdinfo in /proc/*/fdinfo/*; do if [ -f \"$fdinfo\" ]; then if grep -q \"drm-client-id\" \"$fdinfo\" 2>/dev/null; then count=$((count + 1)); fi; fi; done; if [ \"$power_state\" = \"D0\" ] && [ $count -gt 0 ]; then echo \"xe_active:$count\"; elif [ \"$power_state\" = \"D0\" ]; then echo \"xe_idle\"; else echo \"xe_suspended\"; fi; exit 0; fi; echo \"unavailable\""]
+        command: ["bash", "-c", "if which intel_gpu_top > /dev/null 2>&1; then result=$(intel_gpu_top -J -s 100 2>/dev/null | head -1); if [ -n \"$result\" ] && echo \"$result\" | grep -q engines; then echo \"$result\"; exit 0; fi; fi; total_cycles_rcs=0; total_cycles_total_rcs=0; total_cycles_vcs=0; total_cycles_total_vcs=0; total_cycles_ccs=0; total_cycles_total_ccs=0; count=0; for fdinfo in /proc/*/fdinfo/*; do if [ -f \"$fdinfo\" ]; then if grep -q \"drm-driver.*xe\" \"$fdinfo\" 2>/dev/null; then cycles_rcs=$(grep \"drm-cycles-rcs:\" \"$fdinfo\" 2>/dev/null | awk '{print $2}'); total_rcs=$(grep \"drm-total-cycles-rcs:\" \"$fdinfo\" 2>/dev/null | awk '{print $2}'); cycles_vcs=$(grep \"drm-cycles-vcs:\" \"$fdinfo\" 2>/dev/null | awk '{print $2}'); total_vcs=$(grep \"drm-total-cycles-vcs:\" \"$fdinfo\" 2>/dev/null | awk '{print $2}'); cycles_ccs=$(grep \"drm-cycles-ccs:\" \"$fdinfo\" 2>/dev/null | awk '{print $2}'); total_ccs=$(grep \"drm-total-cycles-ccs:\" \"$fdinfo\" 2>/dev/null | awk '{print $2}'); if [ -n \"$cycles_rcs\" ]; then total_cycles_rcs=$((total_cycles_rcs + cycles_rcs)); total_cycles_total_rcs=$((total_cycles_total_rcs + total_rcs)); total_cycles_vcs=$((total_cycles_vcs + cycles_vcs)); total_cycles_total_vcs=$((total_cycles_total_vcs + total_vcs)); total_cycles_ccs=$((total_cycles_ccs + cycles_ccs)); total_cycles_total_ccs=$((total_cycles_total_ccs + total_ccs)); count=$((count + 1)); fi; fi; fi; done; if [ $count -gt 0 ]; then echo \"xe_fdinfo:$total_cycles_rcs:$total_cycles_total_rcs:$total_cycles_vcs:$total_cycles_total_vcs:$total_cycles_ccs:$total_cycles_total_ccs\"; exit 0; fi; echo \"unavailable\""]
         running: false
         stdout: StdioCollector {
             id: gpuOutputCollector
@@ -185,18 +187,77 @@ Singleton {
                     } catch (e) {}
                 }
                 
-                // Parse Xe driver status
-                if (output.startsWith("xe_active:")) {
-                    const clients = parseInt(output.split(":")[1])
-                    root.gpuUsage = Math.min(0.3 + (clients * 0.15), 1.0)  // Rough estimate
-                    root.gpuAvailable = true
-                } else if (output === "xe_idle") {
-                    root.gpuUsage = 0.05  // Idle but powered on
-                    root.gpuAvailable = true
-                } else if (output === "xe_suspended") {
-                    root.gpuUsage = 0
-                    root.gpuAvailable = true
-                } else if (output !== "unavailable") {
+                // Parse Xe driver fdinfo (drm-cycles)
+                if (output.startsWith("xe_fdinfo:")) {
+                    try {
+                        const parts = output.split(":")
+                        const cycles_rcs = parseInt(parts[1])
+                        const total_rcs = parseInt(parts[2])
+                        const cycles_vcs = parseInt(parts[3])
+                        const total_vcs = parseInt(parts[4])
+                        const cycles_ccs = parseInt(parts[5])
+                        const total_ccs = parseInt(parts[6])
+                        
+                        // Calculate usage for each engine type
+                        let totalUsage = 0
+                        let engineCount = 0
+                        
+                        // Render/Compute engine (RCS)
+                        if (root.previousGpuCycles.rcs !== undefined && total_rcs > root.previousGpuCycles.total_rcs) {
+                            const cyclesDiff = cycles_rcs - root.previousGpuCycles.rcs
+                            const totalDiff = total_rcs - root.previousGpuCycles.total_rcs
+                            if (totalDiff > 0) {
+                                totalUsage += cyclesDiff / totalDiff
+                                engineCount++
+                            }
+                        }
+                        
+                        // Video engine (VCS)
+                        if (root.previousGpuCycles.vcs !== undefined && total_vcs > root.previousGpuCycles.total_vcs) {
+                            const cyclesDiff = cycles_vcs - root.previousGpuCycles.vcs
+                            const totalDiff = total_vcs - root.previousGpuCycles.total_vcs
+                            if (totalDiff > 0) {
+                                totalUsage += cyclesDiff / totalDiff
+                                engineCount++
+                            }
+                        }
+                        
+                        // Compute engine (CCS)
+                        if (root.previousGpuCycles.ccs !== undefined && total_ccs > root.previousGpuCycles.total_ccs) {
+                            const cyclesDiff = cycles_ccs - root.previousGpuCycles.ccs
+                            const totalDiff = total_ccs - root.previousGpuCycles.total_ccs
+                            if (totalDiff > 0) {
+                                totalUsage += cyclesDiff / totalDiff
+                                engineCount++
+                            }
+                        }
+                        
+                        // Store current values for next iteration
+                        root.previousGpuCycles = {
+                            rcs: cycles_rcs,
+                            total_rcs: total_rcs,
+                            vcs: cycles_vcs,
+                            total_vcs: total_vcs,
+                            ccs: cycles_ccs,
+                            total_ccs: total_ccs
+                        }
+                        
+                        if (engineCount > 0) {
+                            root.gpuUsage = totalUsage / engineCount
+                            root.gpuAvailable = true
+                        } else {
+                            // First run, no previous data
+                            root.gpuUsage = 0
+                            root.gpuAvailable = true
+                        }
+                        return
+                    } catch (e) {
+                        console.log("Error parsing GPU fdinfo:", e)
+                    }
+                }
+                
+                // No GPU detected
+                if (output !== "unavailable") {
                     root.gpuAvailable = false
                 }
             }

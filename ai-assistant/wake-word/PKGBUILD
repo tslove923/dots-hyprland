@@ -58,7 +58,7 @@ source=()
 sha256sums=()
 
 # Version hash for cache invalidation (update when dependencies change)
-_dep_hash="v2_ov2025.4.1_oww0.6.0"
+_dep_hash="v3_ov2025.4.1_sounddevice"
 
 package() {
   local venv_dir="${pkgdir}/opt/ai-assistant-wake-word/venv"
@@ -93,8 +93,9 @@ package() {
     msg "Installing Python dependencies in venv..."
     "${venv_dir}/bin/pip" install \
       openvino==2025.4.1 \
-      pyaudio==0.2.14 \
+      sounddevice \
       numpy \
+      scipy \
       onnx \
       onnxruntime \
       openwakeword

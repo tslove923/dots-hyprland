@@ -5,16 +5,11 @@ Uses OpenVINO for Intel NPU acceleration, inspired by voxd-npu architecture
 Coordinates microphone access with voxd to prevent conflicts
 """
 
-import multiprocessing
-# CRITICAL: Set spawn method BEFORE any imports that might use multiprocessing
-# This prevents OpenVINO NPU driver corruption when forking
-multiprocessing.set_start_method('spawn', force=True)
-
 import os
 import sys
 import time
 import struct
-import pyaudio
+import sounddevice as sd
 import numpy as np
 from pathlib import Path
 import socket
@@ -44,7 +39,7 @@ THRESHOLD = 0.5
 CHUNK_SIZE = 1280  # 80ms at 16kHz
 SAMPLE_RATE = 16000
 CHANNELS = 1
-FORMAT = pyaudio.paInt16
+DTYPE = 'int16'  # sounddevice dtype
 
 # Device selection (NPU > GPU > CPU)
 DEVICE = "NPU"  # Change to "CPU" or "GPU" if needed
@@ -71,8 +66,7 @@ class NPUWakeWordDetector:
         self.models = {}
         self.paused = False
         
-        # Initialize PyAudio and detect device BEFORE OpenVINO to prevent conflicts
-        self.audio = pyaudio.PyAudio()
+        # Detect audio device BEFORE OpenVINO to prevent conflicts
         self.input_device_index = self.get_input_device()
         print(f"[audio] Pre-selected device: {self.input_device_index}")
         
@@ -300,8 +294,8 @@ class NPUWakeWordDetector:
         # If user explicitly set device, try that first
         if AUDIO_DEVICE_INDEX != 16:  # Not default
             try:
-                info = self.audio.get_device_info_by_index(AUDIO_DEVICE_INDEX)
-                if info.get('maxInputChannels', 0) > 0:
+                info = sd.query_devices(AUDIO_DEVICE_INDEX)
+                if info.get('max_input_channels', 0) > 0:
                     print(f"[audio] Using configured device {AUDIO_DEVICE_INDEX}: {info['name']}")
                     return AUDIO_DEVICE_INDEX
             except Exception as e:
@@ -312,13 +306,13 @@ class NPUWakeWordDetector:
         builtin_keywords = ['microphone', 'internal mic', 'built-in', 'laptop', 'webcam']
         
         candidates = []
-        for i in range(self.audio.get_device_count()):
+        devices = sd.query_devices()
+        for i, info in enumerate(devices):
             try:
-                info = self.audio.get_device_info_by_index(i)
                 name = info.get('name', '').lower()
                 
                 # Skip if no input channels
-                if info.get('maxInputChannels', 0) == 0:
+                if info.get('max_input_channels', 0) == 0:
                     continue
                 
                 # Skip Bluetooth devices
@@ -328,7 +322,7 @@ class NPUWakeWordDetector:
                 # Prefer built-in microphones
                 score = sum(kw in name for kw in builtin_keywords)
                 if score > 0:
-                    device_rate = int(info.get('defaultSampleRate', 48000))
+                    device_rate = int(info.get('default_samplerate', 48000))
                     candidates.append((score, i, info['name'], device_rate))
             except Exception:
                 continue
@@ -343,8 +337,9 @@ class NPUWakeWordDetector:
             return device_index
         
         # Fallback to default
-        print(f"[audio] No suitable device found, using default (0)")
-        return 0
+        default_device = sd.default.device[0]  # Input device
+        print(f"[audio] No suitable device found, using default ({default_device})")
+        return default_device
     
     def setup_socket(self):
         """Setup Unix socket for IPC"""
@@ -379,8 +374,8 @@ class NPUWakeWordDetector:
                 return
         
         # Get device sample rate for resampling (device already selected in __init__)
-        device_info = self.audio.get_device_info_by_index(self.input_device_index)
-        self.device_sample_rate = int(device_info['defaultSampleRate'])
+        device_info = sd.query_devices(self.input_device_index)
+        self.device_sample_rate = int(device_info['default_samplerate'])
         self.resample_ratio = self.device_sample_rate / SAMPLE_RATE
         self.resample_buffer = deque()  # Reset deque for new stream
         
@@ -389,15 +384,6 @@ class NPUWakeWordDetector:
         # Calculate chunk size for device's native sample rate
         device_chunk_size = int(CHUNK_SIZE * self.resample_ratio)
         
-        stream = self.audio.open(
-            format=FORMAT,
-            channels=CHANNELS,
-            rate=self.device_sample_rate,  # Use device's native rate
-            input=True,
-            input_device_index=self.input_device_index,
-            frames_per_buffer=device_chunk_size
-        )
-        
         print("🎤 Listening for wake word...")
         print(f"   Device: {self.actual_device}")
         print(f"   Models: {WAKE_WORDS}")
@@ -405,72 +391,85 @@ class NPUWakeWordDetector:
         if self.audio_manager:
             print(f"   Audio coordination: ✅ Enabled")
         
-        try:
-            while True:
-                # Check if we should pause for voxd
-                if self.audio_manager and self.audio_manager.should_pause():
-                    if not self.paused:
-                        print("⏸️  Pausing for voxd recording...")
-                        self.paused = True
-                    time.sleep(0.1)  # Wait while voxd is recording
-                    continue
-                elif self.paused:
-                    print("▶️  Resuming wake word detection...")
-                    self.paused = False
-                    # Re-request access
-                    self.audio_manager.request_access()
-                
-                # Read audio chunk at device's native sample rate
-                audio_data = stream.read(device_chunk_size, exception_on_overflow=False)
-                audio_array_native = np.frombuffer(audio_data, dtype=np.int16)
-                
-                # Resample to 16kHz if needed
-                if self.device_sample_rate != SAMPLE_RATE:
-                    # Skip resampling for now to debug crash
-                    # Just use first N samples directly (wrong but won't crash)
-                    if len(audio_array_native) >= CHUNK_SIZE:
-                        audio_array = audio_array_native[:CHUNK_SIZE]
-                    else:
+        # Create audio stream with sounddevice
+        with sd.InputStream(
+            device=self.input_device_index,
+            channels=CHANNELS,
+            samplerate=self.device_sample_rate,
+            blocksize=device_chunk_size,
+            dtype=DTYPE
+        ) as stream:
+            try:
+                while True:
+                    # Check if we should pause for voxd
+                    if self.audio_manager and self.audio_manager.should_pause():
+                        if not self.paused:
+                            print("⏸️  Pausing for voxd recording...")
+                            self.paused = True
+                        time.sleep(0.1)  # Wait while voxd is recording
                         continue
-                else:
-                    audio_array = audio_array_native
-                
-                # Get predictions
-                start = time.time()
-                predictions = self.predict(audio_array)
-                latency = (time.time() - start) * 1000  # ms
-                
-                # Check for wake word
-                for wake_word, confidence in predictions.items():
-                    if confidence >= THRESHOLD:
-                        print(f"\n🔥 Wake word detected: {wake_word}")
-                        print(f"   Confidence: {confidence:.3f}")
-                        print(f"   Latency: {latency:.1f}ms")
-                        print(f"   Device: {self.actual_device}")
+                    elif self.paused:
+                        print("▶️  Resuming wake word detection...")
+                        self.paused = False
+                        # Re-request access
+                        self.audio_manager.request_access()
+                    
+                    # Read audio chunk at device's native sample rate
+                    audio_array_native, overflowed = stream.read(device_chunk_size)
+                    if overflowed:
+                        print("⚠️  Audio buffer overflow")
+                    
+                    # Convert to 1D array and correct dtype
+                    audio_array_native = audio_array_native.flatten().astype(np.int16)
+                    
+                    # Resample to 16kHz if needed
+                    if self.device_sample_rate != SAMPLE_RATE:
+                        # Use scipy for high-quality resampling
+                        audio_array = signal.resample_poly(
+                            audio_array_native, 
+                            up=SAMPLE_RATE, 
+                            down=self.device_sample_rate
+                        ).astype(np.int16)
                         
-                        self.send_event('wake_word_detected', {
-                            'wake_word': wake_word,
-                            'confidence': float(confidence),
-                            'latency_ms': latency,
-                            'device': self.actual_device
-                        })
-                        
-                        time.sleep(2.0)
-                        
-        except KeyboardInterrupt:
-            print("\n\nShutting down...")
-        finally:
-            stream.stop_stream()
-            stream.close()
-            self.audio.terminate()
-            
-            # Release microphone access
-            if self.audio_manager:
-                self.audio_manager.release_access()
-                print("✅ Released microphone access")
-            
-            if os.path.exists(SOCKET_PATH):
-                os.unlink(SOCKET_PATH)
+                        # Take exactly CHUNK_SIZE samples
+                        if len(audio_array) >= CHUNK_SIZE:
+                            audio_array = audio_array[:CHUNK_SIZE]
+                        else:
+                            # Pad if needed (shouldn't happen with correct chunk size)
+                            audio_array = np.pad(audio_array, (0, CHUNK_SIZE - len(audio_array)))
+                    else:
+                        audio_array = audio_array_native
+                    
+                    # Get predictions
+                    start = time.time()
+                    predictions = self.predict(audio_array)
+                    latency = (time.time() - start) * 1000  # ms
+                    
+                    # Check for wake word
+                    for wake_word, confidence in predictions.items():
+                        if confidence >= THRESHOLD:
+                            print(f"\n🔥 Wake word detected: {wake_word}")
+                            print(f"   Confidence: {confidence:.3f}")
+                            print(f"   Latency: {latency:.1f}ms")
+                            print(f"   Device: {self.actual_device}")
+                            
+                            # Trigger AI assistant
+                            self.trigger_event('wake_word_detected', {
+                                'wake_word': wake_word,
+                                'confidence': float(confidence),
+                                'latency_ms': latency
+                            })
+                            
+                            # Pause briefly after detection
+                            time.sleep(2.0)
+                            
+            except KeyboardInterrupt:
+                print("\n\n👋 Shutting down...")
+            finally:
+                if self.audio_manager:
+                    self.audio_manager.release()
+                if os.path.exists(SOCKET_PATH):
+                    os.unlink(SOCKET_PATH)
 
 def main():
     try:
