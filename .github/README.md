@@ -9,7 +9,7 @@ This branch adds a VPN connection indicator to the Quickshell status bar.
 
 ### Screenshot
 
-![VPN Indicator in action](.github/images/vpn-indicator.png)
+![VPN Indicator in action](images/vpn-indicator.png)
 
 ### Features
 
