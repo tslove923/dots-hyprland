@@ -1,251 +1,118 @@
-# dots-hyprland (tslove923 fork)
+# dots-hyprland - GitHub Copilot Integration
 
-> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) · illogical-impulse  
-> Custom features for Intel Lunar Lake laptops, voice AI, home automation, and daily-driver QoL
+> **Branch**: `feature/copilot-integration`  
+> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
----
+## 🤖 GitHub Copilot AI Integration
 
-## 🚀 Quick Start — Apply All Features
+This branch adds GitHub Copilot as an AI model option in the sidebar AI panel.
 
-After a fresh `./setup install` from `main`, run one script to merge and deploy every feature branch:
+### Features
+
+- **GitHub Copilot CLI integration**: Uses `gh copilot` command for queries
+- **No API key required**: Uses your existing GitHub Copilot subscription
+- **Custom API strategy**: Implements CopilotCliApiStrategy for gh CLI
+- **Copilot icon**: Changes the AI panel icon to the Copilot symbol
+
+### Files Added/Modified
+
+#### New Files
+- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` - Custom API handler for gh CLI
+
+#### Modified Files
+- `dots/quickshell/ii/services/Ai.qml` - Adds github-copilot model definition (around line 315)
+- `dots/illogical-impulse/config.json` - Changes `topLeftIcon` to "copilot" (line 165)
+
+### Installation
+
+#### Prerequisites
+
+1. GitHub CLI installed:
+   ```bash
+   # Arch/Manjaro
+   sudo pacman -S github-cli
+   
+   # Or via yay
+   yay -S github-cli
+   ```
+
+2. GitHub Copilot extension:
+   ```bash
+   gh extension install github/gh-copilot
+   ```
+
+3. Active GitHub Copilot subscription and authentication:
+   ```bash
+   gh auth login
+   ```
+
+#### Install the Feature
 
 ```bash
-./apply-all-features.sh
+# Copy the API strategy
+cp dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml \
+   ~/.config/quickshell/ii/services/ai/
+
+# Copy the updated Ai service
+cp dots/quickshell/ii/services/Ai.qml \
+   ~/.config/quickshell/ii/services/
+
+# Optional: Update the icon
+cp dots/illogical-impulse/config.json \
+   ~/.config/illogical-impulse/
 ```
-
-This creates a temporary integration branch, merges all 8 feature branches in the correct order, auto-resolves conflicts, backs up your config, and deploys everything. See [Apply All Features](#-apply-all-features-script) below for details.
-
----
-
-## ✨ Feature Branches
-
-### 🎮 GPU & NPU Monitoring — [`feature/gpu-npu-monitoring`](https://github.com/tslove923/dots-hyprland/tree/feature/gpu-npu-monitoring)
-
-Real-time GPU and NPU usage indicators for Intel Lunar Lake SoCs in the Quickshell status bar.
-
-- **GPU**: DRM cycle counter monitoring (render, video, compute engines) with live frequency
-- **NPU**: `npu_busy_time_us` delta method for granular utilization %, frequency, memory
-- **UI**: Indicators in bar, vertical bar, popup tooltip, and full overlay
-- **Config**: Adjustable warning thresholds (default 90%), always-show toggles
-
-<details>
-<summary>Files changed</summary>
-
-| File | Description |
-|------|-------------|
-| `services/ResourceUsage.qml` | GPU/NPU monitoring logic with DRM fdinfo parsing |
-| `modules/ii/bar/Resources.qml` | GPU/NPU indicators in horizontal bar |
-| `modules/ii/verticalBar/Resources.qml` | GPU/NPU indicators in vertical bar |
-| `modules/ii/bar/ResourcesPopup.qml` | GPU/NPU info in hover tooltip |
-| `modules/ii/overlay/resources/Resources.qml` | GPU/NPU tabs with usage graphs |
-| `modules/common/Config.qml` | Config options (thresholds, always-show) |
-</details>
-
----
-
-### 🔒 VPN Status Indicator — [`feature/vpn-indicator`](https://github.com/tslove923/dots-hyprland/tree/feature/vpn-indicator)
-
-VPN connection indicator in the system bar with click-to-toggle.
-
-- 🟢 Green when connected, ⚫ grey when disconnected
-- Click to toggle VPN via user script
-- Detects OpenVPN, WireGuard, and tun0 interfaces
-- 5-second polling interval
-
-<details>
-<summary>Files changed</summary>
-
-- `dots/quickshell/ii/services/VpnStatus.qml` (new)
-- `dots/quickshell/ii/modules/ii/bar/BarContent.qml` (modified)
-</details>
-
----
-
-### 💬 GitHub Copilot Integration — [`feature/copilot-integration`](https://github.com/tslove923/dots-hyprland/tree/feature/copilot-integration)
-
-GitHub Copilot as an AI backend in the Quickshell AI chat panel.
-
-- Routes AI panel queries through `gh copilot` CLI
-- Seamless integration with existing AI chat UI
-- External config for API settings
-
-<details>
-<summary>Files changed</summary>
-
-- `dots/quickshell/ii/services/Ai.qml` (new overlay)
-- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` (new)
-- `dots/illogical-impulse/config.json` (new — Copilot config)
-</details>
-
----
-
-### ⌨️ Custom Configs & Keybinds — [`feature/custom-configs`](https://github.com/tslove923/dots-hyprland/tree/feature/custom-configs)
-
-Personal keybinds, service toggles, and startup scripts.
-
-- **Super+Alt+D** — Toggle Docker on/off
-- **Super+Alt+V** — VPN toggle (polkit GUI auth)
-- **Super+Alt+P** — Proxy toggle with notification
-- **Super+C/V/X** — Universal copy/paste/cut (sendshortcut)
-- **Super+Alt+B** — Bluetooth TUI
-- Startup apps script, nm-applet as headless secret agent
-
-<details>
-<summary>Files changed</summary>
-
-- `dots/.config/hypr/custom/keybinds.conf`
-- `dots/.config/hypr/custom/execs.conf`
-- `dots/.config/hypr/custom/scripts/` — toggle_docker.sh, nova_toggle_wake.sh, nova_toggle_tts.sh, startup-apps.sh
-- `dots/.config/hypr/hyprland/keybinds.conf` — Super+C/V remapping
-</details>
-
----
-
-### 🕐 US Date Format & World Clocks — [`feature/us-clock-view-worldclocks`](https://github.com/tslove923/dots-hyprland/tree/feature/us-clock-view-worldclocks)
-
-US-style date formatting and world clock panel in the right sidebar.
-
-- Top bar date changed to MM/dd format
-- World clocks panel in sidebar (sorted by UTC offset)
-- Consistent "City, XX" label format
-
-<details>
-<summary>Files changed</summary>
-
-- `modules/common/Config.qml` — date format strings
-- `modules/ii/bar/ClockWidget.qml` — work week display
-- `modules/ii/sidebarRight/SidebarRightContent.qml` — world clocks integration
-- `modules/ii/sidebarRight/WorldClocks.qml` (new)
-- `services/DateTime.qml` — date formatting
-</details>
-
----
-
-### 🏠 Home Assistant Integration — [`feature/homeassistant-integration`](https://github.com/tslove923/dots-hyprland/tree/feature/homeassistant-integration)
-
-Home Assistant panel in the top bar for smart home control.
-
-- HomeKit-inspired entity categories (cameras, lights, locks, covers, climate, appliances)
-- Configurable polling interval, external config file support
-- Device count indicator (toggleable)
-- Settings UI in Quickshell settings panel
-
-<details>
-<summary>Files changed</summary>
-
-- `services/HomeAssistant.qml` (new)
-- `modules/ii/bar/BarContent.qml`, `modules/ii/bar/home/HomeBar.qml`, `modules/ii/bar/home/HomePopup.qml` (new)
-- `modules/settings/BarConfig.qml`, `modules/settings/ServicesConfig.qml` (new)
-- `modules/common/Config.qml` — homeAssistant config block
-</details>
-
----
-
-### 🎵 MPRIS Active Player Fix — [`feature/mpris-active-player-fix-main`](https://github.com/tslove923/dots-hyprland/tree/feature/mpris-active-player-fix-main)
-
-Fixes media player selection so the currently playing source takes priority.
-
-- Browser media (Chromium, Firefox) now properly detected
-- Active player prioritized over paused/stopped players
-- 3-file fix, minimal and clean
-
-<details>
-<summary>Files changed</summary>
-
-- `modules/ii/bar/Media.qml`
-- `modules/ii/mediaControls/MediaControls.qml`
-- `services/MprisController.qml`
-</details>
-
----
-
-###  WiFi Reconnect Fix — [`fix/wifi-reconnect-after-password`](https://github.com/tslove923/dots-hyprland/tree/fix/wifi-reconnect-after-password)
-
-Properly re-executes `nmcli connect` after a WiFi password change.
-
-<details>
-<summary>Files changed</summary>
-
-- `services/Network.qml` — 1 file, 5 lines changed
-</details>
-
----
-
-## 📦 Apply Features
-
-Two scripts on [`feature/apply-script`](https://github.com/tslove923/dots-hyprland/tree/feature/apply-script) merge and deploy feature branches to your live config.
-
-| Script | Description |
-|--------|-------------|
-| `apply-features.sh` | **Interactive TUI** — select which features to apply (dialog/whiptail/plain fallback) |
-| `apply-all-features.sh` | Apply all features without prompting |
 
 ### Usage
 
+1. Open the AI sidebar (default: Super+A)
+2. Click the model selector dropdown
+3. Select "GitHub Copilot"
+4. Start chatting!
+
+### How It Works
+
+Unlike other AI models that use HTTP APIs, this integration:
+1. Converts chat messages to a format suitable for `gh copilot`
+2. Executes `gh copilot explain` or `gh copilot suggest` via CLI
+3. Streams the response back to the UI
+4. No API keys needed - uses your gh CLI authentication
+
+### Customization
+
+The implementation handles:
+- Multi-turn conversations
+- System prompts
+- Streaming responses
+- Error handling
+
+To modify behavior, edit `CopilotCliApiStrategy.qml`.
+
+### Troubleshooting
+
+**"gh: command not found"**
+- Install GitHub CLI (see prerequisites)
+
+**"Copilot extension not found"**
 ```bash
-# Interactive TUI — pick features from a checklist
-./apply-features.sh
-
-# Apply everything (no TUI)
-./apply-features.sh --all
-# or
-./apply-all-features.sh
-
-# Preview only — create integration branch without deploying
-./apply-features.sh --dry-run
-
-# Deploy without AI assistant prompt
-./apply-features.sh --no-ai-assistant
-
-# Keep integration branch after deploy for inspection
-./apply-features.sh --keep-branch
+gh extension install github/gh-copilot
 ```
 
-### Merge Order
-
-The scripts merge in dependency-aware order to minimize conflicts:
-
-| # | Branch | Merges cleanly? |
-|---|--------|-----------------|
-| 1 | `fix/wifi-reconnect-after-password` | ✅ Clean |
-| 2 | `feature/mpris-active-player-fix-main` | ✅ Clean |
-| 3 | `feature/copilot-integration` | ⚡ README conflicts → auto-resolved |
-| 4 | `feature/custom-configs` | ⚡ README conflicts → auto-resolved |
-| 5 | `feature/us-clock-view-worldclocks` | ⚡ Keybinds conflict → auto-resolved |
-| 6 | `feature/homeassistant-integration` | ⚡ README conflict → auto-resolved |
-
-### What It Does
-
-1. Presents a TUI checklist to select features (or applies all via `--all`)
-2. Creates a temporary integration branch from `main`
-3. Sequentially merges selected feature branches
-4. Auto-resolves known conflicts (READMEs, keybinds, BarContent)
-5. Backs up `~/.config` to `~/.config-backup-features-<timestamp>`
-6. Deploys merged configs via rsync
-7. Optionally runs post-deploy hooks
-8. Verifies critical files and reloads Hyprland
-
-### Restoring from Backup
-
+**"Failed to log in to github.com"**
 ```bash
-cp -a ~/.config-backup-features-<timestamp>/.config/* ~/.config/
-hyprctl reload
+gh auth login
+# Follow the prompts to authenticate
 ```
+
+**"The token is invalid"**
+```bash
+gh auth refresh
+```
+
+### Screenshots
+
+[Add your screenshots here]
 
 ---
 
-## 🔧 Requirements
-
-- [Hyprland](https://hyprland.org/) with [Quickshell](https://github.com/quickshell-mirror/quickshell)
-- Arch Linux (tested), Fedora (partial support)
-- Intel Lunar Lake SoC (for GPU/NPU monitoring; other features work on any hardware)
-- Optional: `intel-gpu-tools`, `openwakeword`, `voxd`, `gh` CLI (for Copilot)
-
-## 📜 License
-
-Same as base repository — see [LICENSE](../LICENSE)
-
----
-
-**Upstream**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**Fork by**: tslove923
+**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
+**Customization by**: tslove923
