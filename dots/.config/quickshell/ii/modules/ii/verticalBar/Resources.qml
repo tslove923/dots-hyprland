@@ -37,6 +37,22 @@ MouseArea {
             warningThreshold: Config.options.bar.resources.cpuWarningThreshold
         }
 
+        Resource {
+            Layout.alignment: Qt.AlignHCenter
+            iconName: "stadia_controller"
+            percentage: ResourceUsage.gpuUsage
+            visible: ResourceUsage.gpuAvailable
+            warningThreshold: Config.options.bar.resources.gpuWarningThreshold
+        }
+
+        Resource {
+            Layout.alignment: Qt.AlignHCenter
+            iconName: "neurology"
+            percentage: ResourceUsage.npuUsage
+            visible: ResourceUsage.npuAvailable
+            warningThreshold: Config.options.bar.resources.npuWarningThreshold
+        }
+
     }
 
     Bar.ResourcesPopup {

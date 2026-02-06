@@ -1,0 +1,247 @@
+# Maintainer: tslove923
+# Contributor: AI Assistant project contributors
+#
+# AI Assistant Wake Word Detector (NPU-accelerated) Package
+# ==========================================================
+# 
+# This PKGBUILD creates an isolated Python virtual environment for the wake word
+# detector. Follows the same pattern as voxd-npu for consistency.
+#
+# Key Design:
+# - Runtime dependencies (openvino, openwakeword, etc.) installed in venv
+# - System Python remains clean - no pip conflicts with pacman
+# - Transparent wrapper script makes venv invisible to users
+# - User runs 'ai-assistant-wake-word' command, venv activation is automatic
+# - Cached venv for fast rebuilds (only reinstalls if dependencies change)
+#
+# Installation location: /opt/ai-assistant-wake-word/venv
+# Wrapper script: /usr/local/bin/ai-assistant-wake-word
+#
+# References:
+# - https://wiki.archlinux.org/title/Python/Virtual_environment
+# - https://peps.python.org/pep-0668/
+
+pkgname=ai-assistant-wake-word-npu
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Voice-activated AI assistant wake word detector with Intel NPU acceleration via OpenVINO"
+arch=('x86_64')
+url="https://github.com/tslove923/dots-hyprland"
+license=('MIT')
+depends=(
+  'python>=3.10'
+  'python-pip'
+  'portaudio'
+  'alsa-plugins'
+  'pipewire-pulse'
+)
+makedepends=(
+  'python-build'
+  'python-installer'
+  'python-setuptools'
+  'python-wheel'
+  'git'
+  'base-devel'
+)
+optdepends=(
+  'ai-assistant-event-handler: Event coordination and voxd integration'
+)
+# Skip stripping/tidying - venv binaries are already optimized from pip
+options=(!strip !staticlibs !emptydirs)
+source=()
+sha256sums=()
+
+# Version hash for cache invalidation (update when dependencies change)
+_dep_hash="v1_ov2025.4.1_oww0.6.0"
+
+package() {
+  local venv_dir="${pkgdir}/opt/ai-assistant-wake-word/venv"
+  local share_dir="${pkgdir}/usr/share/ai-assistant-wake-word"
+  local cached_venv="${startdir}/.cached_venv_${_dep_hash}"
+  
+  # Speed optimization: Reuse cached venv if it exists and is valid
+  if [[ -d "${cached_venv}" && -x "${cached_venv}/bin/python" ]]; then
+    msg "Reusing cached venv (fast rebuild mode)..."
+    msg "  Cache: ${_dep_hash}"
+    mkdir -p "${pkgdir}/opt/ai-assistant-wake-word"
+    cp -a "${cached_venv}" "${venv_dir}"
+    
+    # Just reinstall the scripts (fast - only app code)
+    cd "$startdir"
+    cp -f wake_word_detector_npu.py "${venv_dir}/bin/"
+    chmod +x "${venv_dir}/bin/wake_word_detector_npu.py"
+  else
+    # Full venv creation (slow - first build or cache miss)
+    msg "Creating new venv (first build or dependencies changed)..."
+    msg "  New cache: ${_dep_hash}"
+    mkdir -p "${venv_dir}"
+    python -m venv "${venv_dir}"
+    
+    # Remove Python 3.14 easter egg symlink that causes bsdtar UTF-8 errors
+    rm -f "${venv_dir}/bin/𝜋thon" 2>/dev/null || true
+    
+    # Upgrade pip in venv
+    "${venv_dir}/bin/pip" install --upgrade pip setuptools wheel
+    
+    # Install runtime Python dependencies into venv
+    msg "Installing Python dependencies in venv..."
+    "${venv_dir}/bin/pip" install \
+      openvino==2025.4.1 \
+      openwakeword==0.6.0 \
+      pyaudio==0.2.14 \
+      numpy==1.26.4 \
+      pydbus==0.6.0 \
+      onnx==1.16.0 \
+      onnxruntime==1.17.1
+    
+    # Install application scripts
+    cd "$startdir"
+    cp wake_word_detector_npu.py "${venv_dir}/bin/"
+    chmod +x "${venv_dir}/bin/wake_word_detector_npu.py"
+    
+    # Cache the venv for fast rebuilds
+    msg "Caching venv for future fast rebuilds..."
+    rm -rf "${cached_venv}"
+    # Clean up old caches (keep only current)
+    rm -rf "${startdir}/.cached_venv_"* 2>/dev/null || true
+    cp -a "${venv_dir}" "${cached_venv}"
+  fi
+  
+  # Fix shebangs in venv scripts to point to final install location
+  msg "Fixing shebangs in venv scripts..."
+  for script in "${venv_dir}/bin/"*; do
+    if [[ -f "$script" ]] && head -1 "$script" | grep -q "^#!.*python"; then
+      sed -i "1s|^#!.*/python.*|#!/opt/ai-assistant-wake-word/venv/bin/python|" "$script"
+    fi
+  done
+  
+  # Create wrapper script in /usr/local/bin that activates venv transparently
+  mkdir -p "${pkgdir}/usr/local/bin"
+  cat > "${pkgdir}/usr/local/bin/ai-assistant-wake-word" << 'EOF'
+#!/bin/bash
+# AI Assistant Wake Word wrapper - activates isolated venv following PEP 668
+source /opt/ai-assistant-wake-word/venv/bin/activate
+exec /opt/ai-assistant-wake-word/venv/bin/wake_word_detector_npu.py "$@"
+EOF
+  chmod +x "${pkgdir}/usr/local/bin/ai-assistant-wake-word"
+  
+  # Install systemd user service
+  mkdir -p "${pkgdir}/usr/lib/systemd/user"
+  cat > "${pkgdir}/usr/lib/systemd/user/ai-assistant-wake-word.service" << 'EOF'
+[Unit]
+Description=AI Assistant Wake Word Detection Service (NPU-accelerated)
+After=sound.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ai-assistant-wake-word
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+  
+  # Install configuration
+  mkdir -p "${pkgdir}/etc/ai-assistant"
+  cat > "${pkgdir}/etc/ai-assistant/wake-word.conf" << 'EOF'
+# AI Assistant Wake Word Configuration
+# Edit this file to customize wake word detection
+
+# Device selection (NPU, GPU, or CPU)
+DEVICE=NPU
+
+# Wake word threshold (0.0 - 1.0)
+# Lower = more sensitive, more false positives
+THRESHOLD=0.5
+
+# Wake words (comma-separated)
+WAKE_WORDS=hey_assistant
+
+# Audio settings
+SAMPLE_RATE=16000
+CHUNK_SIZE=1280
+
+# Fallback to CPU if NPU unavailable
+FALLBACK_TO_CPU=true
+EOF
+  
+  # Install documentation
+  mkdir -p "${share_dir}/doc"
+  cat > "${share_dir}/doc/README.md" << 'EOF'
+# AI Assistant Wake Word Detector
+
+NPU-accelerated wake word detection using OpenVINO.
+
+## Usage
+
+Start the service:
+```bash
+systemctl --user enable --now ai-assistant-wake-word
+```
+
+Run manually:
+```bash
+ai-assistant-wake-word
+```
+
+Check status:
+```bash
+systemctl --user status ai-assistant-wake-word
+journalctl --user -u ai-assistant-wake-word -f
+```
+
+## Configuration
+
+Edit `/etc/ai-assistant/wake-word.conf` to customize settings.
+
+## Device Selection
+
+- NPU (default): Intel NPU acceleration, lowest power
+- GPU: Integrated graphics, medium power  
+- CPU: Fallback, highest power
+
+The service auto-detects and falls back gracefully.
+
+## Troubleshooting
+
+Test microphone:
+```bash
+arecord -l
+arecord -d 5 test.wav && aplay test.wav
+```
+
+Check logs:
+```bash
+journalctl --user -u ai-assistant-wake-word -n 50
+```
+EOF
+  
+  # Install license
+  mkdir -p "${pkgdir}/usr/share/licenses/${pkgname}"
+  cat > "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE" << 'EOF'
+MIT License
+
+Copyright (c) 2026 tslove923
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+EOF
+}

@@ -90,5 +90,43 @@ StyledPopup {
                 }
             }
         }
+
+        Column {
+            visible: ResourceUsage.gpuAvailable
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "stadia_controller"
+                label: "GPU"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "bolt"
+                    label: Translation.tr("Load:")
+                    value: `${Math.round(ResourceUsage.gpuUsage * 100)}%`
+                }
+            }
+        }
+
+        Column {
+            visible: ResourceUsage.npuAvailable
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "neurology"
+                label: "NPU"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "bolt"
+                    label: Translation.tr("Status:")
+                    value: ResourceUsage.npuUsage > 0.5 ? Translation.tr("Active") : Translation.tr("Suspended")
+                }
+            }
+        }
     }
 }
