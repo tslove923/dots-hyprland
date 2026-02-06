@@ -3,6 +3,11 @@
 NPU-Accelerated Wake Word Detection Service
 Uses OpenVINO for Intel NPU acceleration, inspired by voxd-npu architecture
 Coordinates microphone access with voxd to prevent conflicts
+
+KNOWN ISSUE: Python 3.14.2 has a critical bug where onnxruntime import causes
+malloc corruption when combined with other imports (numpy, sounddevice, socket).
+This crashes the program before any code executes. Workaround: Use Python 3.12/3.13
+or wait for Python 3.14.3 bugfix.
 """
 
 import os
@@ -14,24 +19,27 @@ import numpy as np
 from pathlib import Path
 import socket
 import json
-import onnx
+# onnx imported lazily to avoid multiprocessing conflicts
 from typing import Optional
-from scipy import signal
+# scipy imported lazily to avoid multiprocessing conflicts with OpenVINO
 from collections import deque
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-try:
-    # TEMPORARILY disabled due to multiprocessing conflict with OpenVINO NPU
-    # TODO: Fix multiprocessing/NPU driver conflict
-    if os.getenv('AUDIO_COORDINATION', '0') == '1':
-        from common.audio_manager import AudioResourceManager
-        AUDIO_COORDINATION = True
-    else:
-        AUDIO_COORDINATION = False
-except ImportError:
-    print("⚠️  Audio coordination not available (common/audio_manager.py missing)")
-    AUDIO_COORDINATION = False
+# TEMPORARILY DISABLED TO TEST IF THIS CAUSES CRASH
+# sys.path.insert(0, str(Path(__file__).parent.parent))
+AUDIO_COORDINATION = False  # Disabled for testing
+
+# try:
+#     # TEMPORARILY disabled due to multiprocessing conflict with OpenVINO NPU
+#     # TODO: Fix multiprocessing/NPU driver conflict
+#     if os.getenv('AUDIO_COORDINATION', '0') == '1':
+#         from common.audio_manager import AudioResourceManager
+#         AUDIO_COORDINATION = True
+#     else:
+#         AUDIO_COORDINATION = False
+# except ImportError:
+#     print("⚠️  Audio coordination not available (common/audio_manager.py missing)")
+#     AUDIO_COORDINATION = False
 
 # Configuration
 WAKE_WORDS = ["alexa"]  # ONNX model names (available: alexa, hey_mycroft, hey_rhasspy)
@@ -42,8 +50,9 @@ CHANNELS = 1
 DTYPE = 'int16'  # sounddevice dtype
 
 # Device selection (NPU > GPU > CPU)
-DEVICE = "NPU"  # Change to "CPU" or "GPU" if needed
+DEVICE = "CPU"  # Temporarily using CPU to test if NPU is causing crashes
 FALLBACK_TO_CPU = True
+USE_ONNX_ONLY = True  # Skip OpenVINO to avoid multiprocessing/malloc corruption
 
 SOCKET_PATH = "/tmp/ai-assistant.sock"
 MODELS_DIR = Path.home() / ".local/share/ai-assistant/wake-word-models"
@@ -65,10 +74,12 @@ class NPUWakeWordDetector:
         self.actual_device = None
         self.models = {}
         self.paused = False
+        print("[debug] Basic vars initialized")
         
         # Detect audio device BEFORE OpenVINO to prevent conflicts
         self.input_device_index = self.get_input_device()
         print(f"[audio] Pre-selected device: {self.input_device_index}")
+        print("[debug] Audio device selected")
         
         # Audio resource coordination
         if AUDIO_COORDINATION:
@@ -76,12 +87,15 @@ class NPUWakeWordDetector:
             print("✅ Audio coordination enabled")
         else:
             self.audio_manager = None
+        print("[debug] Audio coordination setup complete")
         
         # Initialize OpenVINO (AFTER PyAudio to avoid driver conflicts)
         self._initialize_openvino()
+        print("[debug] OpenVINO initialized")
         
         # Load wake word models
         self._load_models()
+        print("[debug] Models loaded")
         
         # Device sample rate detection will happen in run() to handle dynamic changes
         self.device_sample_rate = None
@@ -97,6 +111,12 @@ class NPUWakeWordDetector:
         
     def _initialize_openvino(self):
         """Initialize OpenVINO Runtime with device detection"""
+        # Skip OpenVINO if using ONNX-only mode to avoid multiprocessing crashes
+        if USE_ONNX_ONLY:
+            print("[onnx] Using ONNX Runtime only (skipping OpenVINO to avoid multiprocessing crash)")
+            self.actual_device = "ONNX_CPU"
+            return
+            
         try:
             import openvino as ov
             
@@ -140,6 +160,14 @@ class NPUWakeWordDetector:
         """Get OpenVINO IR model, converting from ONNX if needed"""
         ov_model_path = MODELS_DIR / f"{wake_word}.xml"
         onnx_model_path = MODELS_DIR / f"{wake_word}.onnx"
+        
+        # If using ONNX Runtime, always use .onnx file
+        if self.actual_device == "ONNX_CPU":
+            if not onnx_model_path.exists():
+                print(f"[model] Downloading {wake_word} ONNX model...")
+                self._download_onnx_model(wake_word, onnx_model_path)
+            print(f"[model] Using ONNX model: {onnx_model_path}")
+            return onnx_model_path
         
         # If OpenVINO IR exists, use it
         if ov_model_path.exists():
@@ -424,6 +452,9 @@ class NPUWakeWordDetector:
                     
                     # Resample to 16kHz if needed
                     if self.device_sample_rate != SAMPLE_RATE:
+                        # Import scipy only when needed (after OpenVINO init to avoid multiprocessing conflicts)
+                        from scipy import signal
+                        
                         # Use scipy for high-quality resampling
                         audio_array = signal.resample_poly(
                             audio_array_native, 
