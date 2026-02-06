@@ -1,251 +1,159 @@
-# dots-hyprland (tslove923 fork)
+# dots-hyprland - GPU & NPU Monitoring Feature
 
-> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) · illogical-impulse  
-> Custom features for Intel Lunar Lake laptops, voice AI, home automation, and daily-driver QoL
+> **Branch**: `feature/gpu-npu-monitoring`  
+> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
----
+## 🎮 GPU & NPU Usage Monitoring
 
-## 🚀 Quick Start — Apply All Features
+This branch adds real-time GPU and NPU usage indicators for Intel Lunar Lake SoCs (and other Intel GPUs) to the Quickshell status bar, similar to existing CPU, memory, and swap monitors.
 
-After a fresh `./setup install` from `main`, run one script to merge and deploy every feature branch:
+### Screenshot
 
+![GPU & NPU Monitoring](images/gpu-npu-monitoring.png)
+
+### Features
+
+- **GPU Monitoring**: Real-time usage tracking via DRM cycle counters
+  - Works with Intel Xe driver (Lunar Lake Arc Graphics)
+  - Supports render, video, and compute engines
+  - Material Symbols icon: `stadia_controller`
+- **NPU Monitoring**: Intel NPU power state detection
+  - Shows Active/Suspended status
+  - Material Symbols icon: `neurology`
+- **Multiple UI Components**: Indicators in bar, vertical bar, popup tooltip, and full overlay
+- **Configurable thresholds**: Warning colors at 90% usage (customizable)
+- **Always-show option**: Keep indicators visible even at 0% usage
+
+### Files Added/Modified
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `services/ResourceUsage.qml` | Added GPU/NPU monitoring logic with DRM fdinfo parsing |
+| `modules/ii/bar/Resources.qml` | Added GPU/NPU indicators to horizontal bar |
+| `modules/ii/verticalBar/Resources.qml` | Added GPU/NPU indicators to vertical bar |
+| `modules/ii/bar/ResourcesPopup.qml` | Added GPU/NPU info to hover tooltip |
+| `modules/ii/overlay/resources/Resources.qml` | Added GPU/NPU tabs with usage graphs |
+| `modules/common/Config.qml` | Added configuration options (thresholds, always-show) |
+
+### Dependencies
+
+**Arch Linux**:
 ```bash
-./apply-all-features.sh
+sudo pacman -S intel-gpu-tools  # Optional, for intel_gpu_top fallback
 ```
 
-This creates a temporary integration branch, merges all 8 feature branches in the correct order, auto-resolves conflicts, backs up your config, and deploys everything. See [Apply All Features](#-apply-all-features-script) below for details.
+**Other distributions**:
+- Fedora/RHEL: `sudo dnf install intel-gpu-tools`
+- Ubuntu/Debian: `sudo apt install intel-gpu-tools`
+- Gentoo: `emerge x11-apps/intel-gpu-tools`
 
----
+### Installation
 
-## ✨ Feature Branches
-
-### 🎮 GPU & NPU Monitoring — [`feature/gpu-npu-monitoring`](https://github.com/tslove923/dots-hyprland/tree/feature/gpu-npu-monitoring)
-
-Real-time GPU and NPU usage indicators for Intel Lunar Lake SoCs in the Quickshell status bar.
-
-- **GPU**: DRM cycle counter monitoring (render, video, compute engines) with live frequency
-- **NPU**: `npu_busy_time_us` delta method for granular utilization %, frequency, memory
-- **UI**: Indicators in bar, vertical bar, popup tooltip, and full overlay
-- **Config**: Adjustable warning thresholds (default 90%), always-show toggles
-
-<details>
-<summary>Files changed</summary>
-
-| File | Description |
-|------|-------------|
-| `services/ResourceUsage.qml` | GPU/NPU monitoring logic with DRM fdinfo parsing |
-| `modules/ii/bar/Resources.qml` | GPU/NPU indicators in horizontal bar |
-| `modules/ii/verticalBar/Resources.qml` | GPU/NPU indicators in vertical bar |
-| `modules/ii/bar/ResourcesPopup.qml` | GPU/NPU info in hover tooltip |
-| `modules/ii/overlay/resources/Resources.qml` | GPU/NPU tabs with usage graphs |
-| `modules/common/Config.qml` | Config options (thresholds, always-show) |
-</details>
-
----
-
-### 🔒 VPN Status Indicator — [`feature/vpn-indicator`](https://github.com/tslove923/dots-hyprland/tree/feature/vpn-indicator)
-
-VPN connection indicator in the system bar with click-to-toggle.
-
-- 🟢 Green when connected, ⚫ grey when disconnected
-- Click to toggle VPN via user script
-- Detects OpenVPN, WireGuard, and tun0 interfaces
-- 5-second polling interval
-
-<details>
-<summary>Files changed</summary>
-
-- `dots/quickshell/ii/services/VpnStatus.qml` (new)
-- `dots/quickshell/ii/modules/ii/bar/BarContent.qml` (modified)
-</details>
-
----
-
-### 💬 GitHub Copilot Integration — [`feature/copilot-integration`](https://github.com/tslove923/dots-hyprland/tree/feature/copilot-integration)
-
-GitHub Copilot as an AI backend in the Quickshell AI chat panel.
-
-- Routes AI panel queries through `gh copilot` CLI
-- Seamless integration with existing AI chat UI
-- External config for API settings
-
-<details>
-<summary>Files changed</summary>
-
-- `dots/quickshell/ii/services/Ai.qml` (new overlay)
-- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` (new)
-- `dots/illogical-impulse/config.json` (new — Copilot config)
-</details>
-
----
-
-### ⌨️ Custom Configs & Keybinds — [`feature/custom-configs`](https://github.com/tslove923/dots-hyprland/tree/feature/custom-configs)
-
-Personal keybinds, service toggles, and startup scripts.
-
-- **Super+Alt+D** — Toggle Docker on/off
-- **Super+Alt+V** — VPN toggle (polkit GUI auth)
-- **Super+Alt+P** — Proxy toggle with notification
-- **Super+C/V/X** — Universal copy/paste/cut (sendshortcut)
-- **Super+Alt+B** — Bluetooth TUI
-- Startup apps script, nm-applet as headless secret agent
-
-<details>
-<summary>Files changed</summary>
-
-- `dots/.config/hypr/custom/keybinds.conf`
-- `dots/.config/hypr/custom/execs.conf`
-- `dots/.config/hypr/custom/scripts/` — toggle_docker.sh, nova_toggle_wake.sh, nova_toggle_tts.sh, startup-apps.sh
-- `dots/.config/hypr/hyprland/keybinds.conf` — Super+C/V remapping
-</details>
-
----
-
-### 🕐 US Date Format & World Clocks — [`feature/us-clock-view-worldclocks`](https://github.com/tslove923/dots-hyprland/tree/feature/us-clock-view-worldclocks)
-
-US-style date formatting and world clock panel in the right sidebar.
-
-- Top bar date changed to MM/dd format
-- World clocks panel in sidebar (sorted by UTC offset)
-- Consistent "City, XX" label format
-
-<details>
-<summary>Files changed</summary>
-
-- `modules/common/Config.qml` — date format strings
-- `modules/ii/bar/ClockWidget.qml` — work week display
-- `modules/ii/sidebarRight/SidebarRightContent.qml` — world clocks integration
-- `modules/ii/sidebarRight/WorldClocks.qml` (new)
-- `services/DateTime.qml` — date formatting
-</details>
-
----
-
-### 🏠 Home Assistant Integration — [`feature/homeassistant-integration`](https://github.com/tslove923/dots-hyprland/tree/feature/homeassistant-integration)
-
-Home Assistant panel in the top bar for smart home control.
-
-- HomeKit-inspired entity categories (cameras, lights, locks, covers, climate, appliances)
-- Configurable polling interval, external config file support
-- Device count indicator (toggleable)
-- Settings UI in Quickshell settings panel
-
-<details>
-<summary>Files changed</summary>
-
-- `services/HomeAssistant.qml` (new)
-- `modules/ii/bar/BarContent.qml`, `modules/ii/bar/home/HomeBar.qml`, `modules/ii/bar/home/HomePopup.qml` (new)
-- `modules/settings/BarConfig.qml`, `modules/settings/ServicesConfig.qml` (new)
-- `modules/common/Config.qml` — homeAssistant config block
-</details>
-
----
-
-### 🎵 MPRIS Active Player Fix — [`feature/mpris-active-player-fix-main`](https://github.com/tslove923/dots-hyprland/tree/feature/mpris-active-player-fix-main)
-
-Fixes media player selection so the currently playing source takes priority.
-
-- Browser media (Chromium, Firefox) now properly detected
-- Active player prioritized over paused/stopped players
-- 3-file fix, minimal and clean
-
-<details>
-<summary>Files changed</summary>
-
-- `modules/ii/bar/Media.qml`
-- `modules/ii/mediaControls/MediaControls.qml`
-- `services/MprisController.qml`
-</details>
-
----
-
-###  WiFi Reconnect Fix — [`fix/wifi-reconnect-after-password`](https://github.com/tslove923/dots-hyprland/tree/fix/wifi-reconnect-after-password)
-
-Properly re-executes `nmcli connect` after a WiFi password change.
-
-<details>
-<summary>Files changed</summary>
-
-- `services/Network.qml` — 1 file, 5 lines changed
-</details>
-
----
-
-## 📦 Apply Features
-
-Two scripts on [`feature/apply-script`](https://github.com/tslove923/dots-hyprland/tree/feature/apply-script) merge and deploy feature branches to your live config.
-
-| Script | Description |
-|--------|-------------|
-| `apply-features.sh` | **Interactive TUI** — select which features to apply (dialog/whiptail/plain fallback) |
-| `apply-all-features.sh` | Apply all features without prompting |
-
-### Usage
-
+**Method 1: From this fork**
 ```bash
-# Interactive TUI — pick features from a checklist
-./apply-features.sh
+# Clone this feature branch
+git clone -b feature/gpu-npu-monitoring https://github.com/tslove923/dots-hyprland.git
+cd dots-hyprland
 
-# Apply everything (no TUI)
-./apply-features.sh --all
-# or
-./apply-all-features.sh
-
-# Preview only — create integration branch without deploying
-./apply-features.sh --dry-run
-
-# Deploy without AI assistant prompt
-./apply-features.sh --no-ai-assistant
-
-# Keep integration branch after deploy for inspection
-./apply-features.sh --keep-branch
+# Run the installer
+./setup
 ```
 
-### Merge Order
-
-The scripts merge in dependency-aware order to minimize conflicts:
-
-| # | Branch | Merges cleanly? |
-|---|--------|-----------------|
-| 1 | `fix/wifi-reconnect-after-password` | ✅ Clean |
-| 2 | `feature/mpris-active-player-fix-main` | ✅ Clean |
-| 3 | `feature/copilot-integration` | ⚡ README conflicts → auto-resolved |
-| 4 | `feature/custom-configs` | ⚡ README conflicts → auto-resolved |
-| 5 | `feature/us-clock-view-worldclocks` | ⚡ Keybinds conflict → auto-resolved |
-| 6 | `feature/homeassistant-integration` | ⚡ README conflict → auto-resolved |
-
-### What It Does
-
-1. Presents a TUI checklist to select features (or applies all via `--all`)
-2. Creates a temporary integration branch from `main`
-3. Sequentially merges selected feature branches
-4. Auto-resolves known conflicts (READMEs, keybinds, BarContent)
-5. Backs up `~/.config` to `~/.config-backup-features-<timestamp>`
-6. Deploys merged configs via rsync
-7. Optionally runs post-deploy hooks
-8. Verifies critical files and reloads Hyprland
-
-### Restoring from Backup
-
+**Method 2: Manual installation**
 ```bash
-cp -a ~/.config-backup-features-<timestamp>/.config/* ~/.config/
-hyprctl reload
+# Copy modified files to your config
+cp dots/.config/quickshell/ii/services/ResourceUsage.qml \
+   ~/.config/quickshell/ii/services/
+
+cp dots/.config/quickshell/ii/modules/ii/bar/Resources.qml \
+   ~/.config/quickshell/ii/modules/ii/bar/
+
+cp dots/.config/quickshell/ii/modules/ii/verticalBar/Resources.qml \
+   ~/.config/quickshell/ii/modules/ii/verticalBar/
+
+cp dots/.config/quickshell/ii/modules/ii/bar/ResourcesPopup.qml \
+   ~/.config/quickshell/ii/modules/ii/bar/
+
+cp dots/.config/quickshell/ii/modules/ii/overlay/resources/Resources.qml \
+   ~/.config/quickshell/ii/modules/ii/overlay/resources/
+
+cp dots/.config/quickshell/ii/modules/common/Config.qml \
+   ~/.config/quickshell/ii/modules/common/
+
+# Reload Quickshell
+qs -r
 ```
 
+### Configuration
+
+Edit `~/.config/illogical-impulse/config.json`:
+
+```json
+{
+  "alwaysShowGpu": true,
+  "gpuWarningThreshold": 90,
+  "alwaysShowNpu": true,
+  "npuWarningThreshold": 90
+}
+```
+
+### How It Works
+
+**GPU Monitoring**:
+1. Reads DRM file descriptors from `/proc/*/fdinfo/*`
+2. Parses cycle counters: `drm-cycles-rcs` (render), `drm-cycles-vcs` (video), `drm-cycles-ccs` (compute)
+3. Calculates usage: `(active_cycles_delta / total_cycles_delta) * 100`
+4. Averages across all active engines
+5. Works with Intel Xe driver (Lunar Lake) and i915
+
+**NPU Monitoring**:
+1. Reads power state from `/sys/class/accel/accel0/device/power/runtime_status`
+2. Returns 100% (Active) or 0% (Suspended)
+3. Future: Could integrate with Intel NPU driver for detailed metrics
+
+### Troubleshooting
+
+**GPU shows 0% constantly**:
+- Check kernel driver: `lspci -k | grep -A 3 VGA`
+- Verify fdinfo exists: `ls /proc/*/fdinfo/* | head`
+- Test manually: `cat /proc/$(pgrep -n qs)/fdinfo/* | grep drm-cycles`
+
+**NPU not detected**:
+- Check device exists: `ls /sys/class/accel/`
+- Verify NPU driver loaded: `lsmod | grep intel_vpu`
+- Check dmesg: `dmesg | grep -i npu`
+
+**Permission errors**:
+- `/proc/*/fdinfo/` requires process ownership (Quickshell reads its own)
+- `/sys/class/accel/` should be world-readable
+
+### Development Workflow
+
+```bash
+# Make changes in dev repo
+cd ~/projects/dots-hyprland-dev
+# Edit files...
+
+# Sync to live config
+bash scripts/sync_and_test.sh gpu-npu
+
+# Test changes
+qs -r
+```
+
+### Credits
+
+- **Mission Center**: Inspired the DRM cycle counter monitoring approach
+- **end-4/dots-hyprland**: Base configuration
+- **Intel**: Xe driver and DRM subsystem documentation
+
+### License
+
+Same as base dots-hyprland repository (see [LICENSE](../LICENSE))
+
 ---
 
-## 🔧 Requirements
-
-- [Hyprland](https://hyprland.org/) with [Quickshell](https://github.com/quickshell-mirror/quickshell)
-- Arch Linux (tested), Fedora (partial support)
-- Intel Lunar Lake SoC (for GPU/NPU monitoring; other features work on any hardware)
-- Optional: `intel-gpu-tools`, `openwakeword`, `voxd`, `gh` CLI (for Copilot)
-
-## 📜 License
-
-Same as base repository — see [LICENSE](../LICENSE)
-
----
-
-**Upstream**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**Fork by**: tslove923
+**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
+**Customization by**: tslove923
