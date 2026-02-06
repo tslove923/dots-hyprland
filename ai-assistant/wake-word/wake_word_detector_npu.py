@@ -27,7 +27,7 @@ except ImportError:
     AUDIO_COORDINATION = False
 
 # Configuration
-WAKE_WORDS = ["hey_assistant"]  # ONNX model names
+WAKE_WORDS = ["hey_jarvis"]  # ONNX model names (available: hey_jarvis, alexa, hey_mycroft, hey_assistant)
 THRESHOLD = 0.5
 CHUNK_SIZE = 1280  # 80ms at 16kHz
 SAMPLE_RATE = 16000
