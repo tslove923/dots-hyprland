@@ -5,6 +5,11 @@ Uses OpenVINO for Intel NPU acceleration, inspired by voxd-npu architecture
 Coordinates microphone access with voxd to prevent conflicts
 """
 
+import multiprocessing
+# CRITICAL: Set spawn method BEFORE any imports that might use multiprocessing
+# This prevents OpenVINO NPU driver corruption when forking
+multiprocessing.set_start_method('spawn', force=True)
+
 import os
 import sys
 import time
@@ -16,18 +21,25 @@ import socket
 import json
 import onnx
 from typing import Optional
+from scipy import signal
+from collections import deque
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 try:
-    from common.audio_manager import AudioResourceManager
-    AUDIO_COORDINATION = True
+    # TEMPORARILY disabled due to multiprocessing conflict with OpenVINO NPU
+    # TODO: Fix multiprocessing/NPU driver conflict
+    if os.getenv('AUDIO_COORDINATION', '0') == '1':
+        from common.audio_manager import AudioResourceManager
+        AUDIO_COORDINATION = True
+    else:
+        AUDIO_COORDINATION = False
 except ImportError:
     print("⚠️  Audio coordination not available (common/audio_manager.py missing)")
     AUDIO_COORDINATION = False
 
 # Configuration
-WAKE_WORDS = ["hey_jarvis"]  # ONNX model names (available: hey_jarvis, alexa, hey_mycroft, hey_assistant)
+WAKE_WORDS = ["alexa"]  # ONNX model names (available: alexa, hey_mycroft, hey_rhasspy)
 THRESHOLD = 0.5
 CHUNK_SIZE = 1280  # 80ms at 16kHz
 SAMPLE_RATE = 16000
@@ -40,6 +52,10 @@ FALLBACK_TO_CPU = True
 
 SOCKET_PATH = "/tmp/ai-assistant.sock"
 MODELS_DIR = Path.home() / ".local/share/ai-assistant/wake-word-models"
+
+# Audio device selection (can be overridden via AUDIO_DEVICE_INDEX env var)
+DEFAULT_DEVICE_INDEX = 16  # Laptop built-in microphones
+AUDIO_DEVICE_INDEX = int(os.environ.get('AUDIO_DEVICE_INDEX', DEFAULT_DEVICE_INDEX))
 
 class NPUWakeWordDetector:
     """
@@ -55,6 +71,11 @@ class NPUWakeWordDetector:
         self.models = {}
         self.paused = False
         
+        # Initialize PyAudio and detect device BEFORE OpenVINO to prevent conflicts
+        self.audio = pyaudio.PyAudio()
+        self.input_device_index = self.get_input_device()
+        print(f"[audio] Pre-selected device: {self.input_device_index}")
+        
         # Audio resource coordination
         if AUDIO_COORDINATION:
             self.audio_manager = AudioResourceManager('wake_word')
@@ -62,15 +83,16 @@ class NPUWakeWordDetector:
         else:
             self.audio_manager = None
         
-        # Initialize OpenVINO
+        # Initialize OpenVINO (AFTER PyAudio to avoid driver conflicts)
         self._initialize_openvino()
         
         # Load wake word models
         self._load_models()
         
-        # Initialize PyAudio
-        self.audio = pyaudio.PyAudio()
-        self.input_device_index = self.get_input_device()
+        # Device sample rate detection will happen in run() to handle dynamic changes
+        self.device_sample_rate = None
+        self.resample_ratio = None
+        self.resample_buffer = deque()  # Use deque for efficient appending
         
         # Create socket for IPC
         self.setup_socket()
@@ -144,34 +166,26 @@ class NPUWakeWordDetector:
             return onnx_model_path
     
     def _download_onnx_model(self, wake_word: str, target_path: Path):
-        """Download pre-trained ONNX wake word model"""
+        """Copy pre-trained ONNX wake word model from openwakeword package"""
+        import shutil
+        
+        # Find bundled models in openwakeword package
         try:
-            from openwakeword.utils import download_models
-            import shutil
+            import openwakeword
+            openwakeword_dir = Path(openwakeword.__file__).parent
+            bundled_model = openwakeword_dir / "resources" / "models" / f"{wake_word}_v0.1.onnx"
             
-            # openwakeword downloads to ~/.local/share/openwakeword
-            print(f"[download] Fetching openwakeword models...")
-            download_models()
+            if not bundled_model.exists():
+                raise FileNotFoundError(f"Model {wake_word} not found in openwakeword bundle")
             
-            # Find the downloaded model
-            openwakeword_dir = Path.home() / ".local/share/openwakeword"
-            source_model = openwakeword_dir / f"{wake_word}.onnx"
-            
-            if not source_model.exists():
-                # Try tflite version (we'll need to convert)
-                source_model = openwakeword_dir / f"{wake_word}.tflite"
-                if source_model.exists():
-                    raise RuntimeError(f"Only tflite model found. ONNX conversion needed.")
-                raise FileNotFoundError(f"Model {wake_word} not found")
-            
-            # Copy to our models directory
-            shutil.copy(source_model, target_path)
-            print(f"[download] Model saved to {target_path}")
+            print(f"[model] Copying {wake_word} from openwakeword bundle...")
+            shutil.copy2(bundled_model, target_path)
+            print(f"[model] Model copied to {target_path}")
             
         except ImportError:
-            print("❌ openwakeword not installed for model download")
-            print("   Install with: pip install openwakeword")
-            raise
+            raise RuntimeError("openwakeword package not found. Install with: pip install openwakeword")
+        except FileNotFoundError as e:
+            raise RuntimeError(f"Model not available: {e}")
     
     def _convert_to_openvino(self, onnx_path: Path, output_path: Path):
         """Convert ONNX model to OpenVINO IR format with INT8 quantization"""
@@ -282,21 +296,60 @@ class NPUWakeWordDetector:
         return predictions
     
     def get_input_device(self):
-        """Find the best input device"""
-        default_device = self.audio.get_default_input_device_info()
-        target_device = "Lunar Lake-M HD Audio Controller Microphones"
+        """Find best input device (prefers built-in mics, avoids Bluetooth)"""
+        # If user explicitly set device, try that first
+        if AUDIO_DEVICE_INDEX != 16:  # Not default
+            try:
+                info = self.audio.get_device_info_by_index(AUDIO_DEVICE_INDEX)
+                if info.get('maxInputChannels', 0) > 0:
+                    print(f"[audio] Using configured device {AUDIO_DEVICE_INDEX}: {info['name']}")
+                    return AUDIO_DEVICE_INDEX
+            except Exception as e:
+                print(f"[audio] Configured device {AUDIO_DEVICE_INDEX} unavailable: {e}")
         
+        # Search for built-in microphones (avoid Bluetooth)
+        bluetooth_keywords = ['bluetooth', 'airpods', 'bt', 'wireless']
+        builtin_keywords = ['microphone', 'internal mic', 'built-in', 'laptop', 'webcam']
+        
+        candidates = []
         for i in range(self.audio.get_device_count()):
-            info = self.audio.get_device_info_by_index(i)
-            if target_device in info.get('name', ''):
-                return i
+            try:
+                info = self.audio.get_device_info_by_index(i)
+                name = info.get('name', '').lower()
+                
+                # Skip if no input channels
+                if info.get('maxInputChannels', 0) == 0:
+                    continue
+                
+                # Skip Bluetooth devices
+                if any(kw in name for kw in bluetooth_keywords):
+                    continue
+                
+                # Prefer built-in microphones
+                score = sum(kw in name for kw in builtin_keywords)
+                if score > 0:
+                    device_rate = int(info.get('defaultSampleRate', 48000))
+                    candidates.append((score, i, info['name'], device_rate))
+            except Exception:
+                continue
+            
+        # Use highest scoring device
+        if candidates:
+            candidates.sort(reverse=True)
+            device_index = candidates[0][1]
+            device_name = candidates[0][2]
+            device_rate = candidates[0][3]
+            print(f"[audio] Auto-selected device {device_index}: {device_name} @ {device_rate}Hz")
+            return device_index
         
-        return default_device['index']
+        # Fallback to default
+        print(f"[audio] No suitable device found, using default (0)")
+        return 0
     
     def setup_socket(self):
-        """Create Unix domain socket for IPC"""
+        """Setup Unix socket for IPC"""
         if os.path.exists(SOCKET_PATH):
-            os.unlink(SOCKET_PATH)
+            os.remove(SOCKET_PATH)
         
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
         self.sock.bind(SOCKET_PATH)
@@ -325,13 +378,24 @@ class NPUWakeWordDetector:
                 print("❌ Could not get microphone access!")
                 return
         
+        # Get device sample rate for resampling (device already selected in __init__)
+        device_info = self.audio.get_device_info_by_index(self.input_device_index)
+        self.device_sample_rate = int(device_info['defaultSampleRate'])
+        self.resample_ratio = self.device_sample_rate / SAMPLE_RATE
+        self.resample_buffer = deque()  # Reset deque for new stream
+        
+        print(f"✅ Audio device: {self.input_device_index} @ {self.device_sample_rate}Hz")
+        
+        # Calculate chunk size for device's native sample rate
+        device_chunk_size = int(CHUNK_SIZE * self.resample_ratio)
+        
         stream = self.audio.open(
             format=FORMAT,
             channels=CHANNELS,
-            rate=SAMPLE_RATE,
+            rate=self.device_sample_rate,  # Use device's native rate
             input=True,
             input_device_index=self.input_device_index,
-            frames_per_buffer=CHUNK_SIZE
+            frames_per_buffer=device_chunk_size
         )
         
         print("🎤 Listening for wake word...")
@@ -356,9 +420,20 @@ class NPUWakeWordDetector:
                     # Re-request access
                     self.audio_manager.request_access()
                 
-                # Read audio chunk
-                audio_data = stream.read(CHUNK_SIZE, exception_on_overflow=False)
-                audio_array = np.frombuffer(audio_data, dtype=np.int16)
+                # Read audio chunk at device's native sample rate
+                audio_data = stream.read(device_chunk_size, exception_on_overflow=False)
+                audio_array_native = np.frombuffer(audio_data, dtype=np.int16)
+                
+                # Resample to 16kHz if needed
+                if self.device_sample_rate != SAMPLE_RATE:
+                    # Skip resampling for now to debug crash
+                    # Just use first N samples directly (wrong but won't crash)
+                    if len(audio_array_native) >= CHUNK_SIZE:
+                        audio_array = audio_array_native[:CHUNK_SIZE]
+                    else:
+                        continue
+                else:
+                    audio_array = audio_array_native
                 
                 # Get predictions
                 start = time.time()

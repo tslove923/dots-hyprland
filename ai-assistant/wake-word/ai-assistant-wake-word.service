@@ -1,14 +1,20 @@
 [Unit]
-Description=AI Assistant Wake Word Detection Service
+Description=AI Assistant Wake Word Detection Service (NPU-accelerated)
 After=sound.target
 
 [Service]
 Type=simple
-ExecStart=%h/projects/dots-hyprland-dev/ai-assistant/wake-word/wake_word_detector.py
+ExecStart=/opt/ai-assistant-wake-word/venv/bin/wake_word_detector_npu.py
 Restart=always
 RestartSec=3
 StandardOutput=journal
 StandardError=journal
+# Audio device selection (defaults to device 16: built-in laptop microphones)
+# Override with: systemctl --user set-environment AUDIO_DEVICE_INDEX=X
+# To find device numbers, run: pactl list sources short
+#Environment="AUDIO_DEVICE_INDEX=16"
+# Pass proxy settings for model downloads (not needed for bundled models)
+PassEnvironment=http_proxy https_proxy no_proxy AUDIO_DEVICE_INDEX
 
 [Install]
 WantedBy=default.target

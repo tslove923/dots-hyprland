@@ -47,12 +47,18 @@ optdepends=(
   'ai-assistant-event-handler: Event coordination and voxd integration'
 )
 # Skip stripping/tidying - venv binaries are already optimized from pip
-options=(!strip !staticlibs !emptydirs)
+# !strip:       Don't strip debug symbols from binaries (saves ~30s with large venv)
+# !debug:       Don't copy debug symbols (saves significant time)
+# !zipman:      Don't compress man pages (we don't have any)
+# !libtool:     Don't remove libtool files
+# !staticlibs:  Don't remove static libraries
+# !emptydirs:   Don't remove empty directories (venv structure needs some)
+options=(!strip !debug !zipman !libtool !staticlibs !emptydirs)
 source=()
 sha256sums=()
 
 # Version hash for cache invalidation (update when dependencies change)
-_dep_hash="v1_ov2025.4.1_oww0.6.0"
+_dep_hash="v2_ov2025.4.1_oww0.6.0"
 
 package() {
   local venv_dir="${pkgdir}/opt/ai-assistant-wake-word/venv"
@@ -87,12 +93,11 @@ package() {
     msg "Installing Python dependencies in venv..."
     "${venv_dir}/bin/pip" install \
       openvino==2025.4.1 \
-      openwakeword==0.6.0 \
       pyaudio==0.2.14 \
-      numpy==1.26.4 \
-      pydbus==0.6.0 \
-      onnx==1.16.0 \
-      onnxruntime==1.17.1
+      numpy \
+      onnx \
+      onnxruntime \
+      openwakeword
     
     # Install application scripts
     cd "$startdir"

@@ -1,0 +1,29 @@
+# PKGBUILD artifacts
+pkg/
+src/
+*.pkg.tar.zst
+*.pkg.tar.zst.sig
+
+# Build artifacts
+build/
+.cached_venv_*/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log

@@ -24,6 +24,18 @@ case "$1" in
         echo "   Dev:  $DEV_DIR/dots/quickshell/ii/modules/ii/bar/BarContent.qml"
         echo "   Live: $LIVE_CONFIG/quickshell/ii/modules/ii/bar/BarContent.qml"
         ;;
+    gpu-npu)
+        echo "🔄 Syncing GPU/NPU monitoring feature to live config..."
+        cp -v dots/.config/quickshell/ii/services/ResourceUsage.qml "$LIVE_CONFIG/quickshell/ii/services/"
+        cp -v dots/.config/quickshell/ii/modules/ii/bar/Resources.qml "$LIVE_CONFIG/quickshell/ii/modules/ii/bar/"
+        cp -v dots/.config/quickshell/ii/modules/ii/bar/ResourcesPopup.qml "$LIVE_CONFIG/quickshell/ii/modules/ii/bar/"
+        cp -v dots/.config/quickshell/ii/modules/ii/verticalBar/Resources.qml "$LIVE_CONFIG/quickshell/ii/modules/ii/verticalBar/"
+        cp -v dots/.config/quickshell/ii/modules/ii/overlay/resources/Resources.qml "$LIVE_CONFIG/quickshell/ii/modules/ii/overlay/resources/"
+        cp -v dots/.config/quickshell/ii/modules/common/Config.qml "$LIVE_CONFIG/quickshell/ii/modules/common/"
+        echo ""
+        echo "📦 Required package: intel-gpu-tools"
+        echo "   Install with: sudo pacman -S intel-gpu-tools"
+        ;;
     copilot)
         echo "🔄 Syncing Copilot integration to live config..."
         cp -v dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml "$LIVE_CONFIG/quickshell/ii/services/ai/"
@@ -52,15 +64,24 @@ case "$1" in
                 feature/custom-keybinds)
                     cp -v "$LIVE_CONFIG/hypr/custom/keybinds.conf" dots/hypr/custom/
                     ;;
+                feature/gpu-npu-monitoring)
+                    cp -v "$LIVE_CONFIG/quickshell/ii/services/ResourceUsage.qml" dots/.config/quickshell/ii/services/
+                    cp -v "$LIVE_CONFIG/quickshell/ii/modules/ii/bar/Resources.qml" dots/.config/quickshell/ii/modules/ii/bar/
+                    cp -v "$LIVE_CONFIG/quickshell/ii/modules/ii/bar/ResourcesPopup.qml" dots/.config/quickshell/ii/modules/ii/bar/
+                    cp -v "$LIVE_CONFIG/quickshell/ii/modules/ii/verticalBar/Resources.qml" dots/.config/quickshell/ii/modules/ii/verticalBar/
+                    cp -v "$LIVE_CONFIG/quickshell/ii/modules/ii/overlay/resources/Resources.qml" dots/.config/quickshell/ii/modules/ii/overlay/resources/
+                    cp -v "$LIVE_CONFIG/quickshell/ii/modules/common/Config.qml" dots/.config/quickshell/ii/modules/common/
+                    ;;
             esac
             git status
         fi
         ;;
     *)
-        echo "Usage: $0 {vpn|copilot|keybinds|pull}"
+        echo "Usage: $0 {vpn|gpu-npu|copilot|keybinds|pull}"
         echo ""
         echo "Commands:"
         echo "  vpn      - Copy VPN indicator to live config (for testing)"
+        echo "  gpu-npu  - Copy GPU/NPU monitoring to live config"
         echo "  copilot  - Copy Copilot integration to live config"
         echo "  keybinds - Copy keybinds to live config"
         echo "  pull     - Pull changes from live config back to dev repo"
