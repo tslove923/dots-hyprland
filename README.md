@@ -1,151 +1,118 @@
-# dots-hyprland - Custom Features Fork
+# dots-hyprland - GitHub Copilot Integration
 
-> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) (illogical-impulse)  
-> **Customizations by**: tslove923  
-> **Target Hardware**: Intel Lunar Lake (Arc GPU + NPU)
+> **Branch**: `feature/copilot-integration`  
+> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-A personal fork of end-4's excellent dots-hyprland Quickshell configuration with custom features and hardware-specific enhancements. Each feature is developed in its own branch and can be used independently.
+## 🤖 GitHub Copilot AI Integration
 
-## 🌟 Custom Features
+This branch adds GitHub Copilot as an AI model option in the sidebar AI panel.
 
-### 📊 [GPU & NPU Monitoring](../../tree/feature/gpu-npu-monitoring)
-Real-time GPU and NPU usage indicators in the Quickshell bar, tailored for Intel Lunar Lake.
+### Features
 
-- **GPU**: DRM cycle counter monitoring (Render/Video/Compute engines) with frequency metrics
-- **NPU**: True compute utilization via `npu_busy_time_us` sysfs interface
-- Material Symbol icons: `stadia_controller` (GPU), `neurology` (NPU)
-- Per-engine popup details with CPU/GPU frequency readouts
-- Color-coded warnings at configurable thresholds
-- Indicator order: CPU → GPU → NPU → Memory → Swap
-- Requires `intel-gpu-tools` for GPU, NPU monitoring is built-in via sysfs
+- **GitHub Copilot CLI integration**: Uses `gh copilot` command for queries
+- **No API key required**: Uses your existing GitHub Copilot subscription
+- **Custom API strategy**: Implements CopilotCliApiStrategy for gh CLI
+- **Copilot icon**: Changes the AI panel icon to the Copilot symbol
 
-**Branch**: [`feature/gpu-npu-monitoring`](../../tree/feature/gpu-npu-monitoring) · [Documentation](GPU_NPU_MONITORING.md)
+### Files Added/Modified
 
----
+#### New Files
+- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` - Custom API handler for gh CLI
 
-### 🔒 [VPN Indicator](../../tree/feature/vpn-indicator)
-Real-time VPN status indicator in the Quickshell bar.
+#### Modified Files
+- `dots/quickshell/ii/services/Ai.qml` - Adds github-copilot model definition (around line 315)
+- `dots/illogical-impulse/config.json` - Changes `topLeftIcon` to "copilot" (line 165)
 
-- Green `vpn_lock` icon when connected, grey when disconnected
-- Click to toggle VPN connection via custom script
-- Supports OpenVPN, WireGuard, and tun0 interfaces
-- Polls every 5 seconds with 2-second post-toggle refresh
+### Installation
 
-**Branch**: [`feature/vpn-indicator`](../../tree/feature/vpn-indicator)
+#### Prerequisites
 
----
+1. GitHub CLI installed:
+   ```bash
+   # Arch/Manjaro
+   sudo pacman -S github-cli
+   
+   # Or via yay
+   yay -S github-cli
+   ```
 
-### 🤖 [GitHub Copilot Integration](../../tree/feature/copilot-integration)
-Integrates GitHub Copilot as an AI model in the sidebar chat panel.
+2. GitHub Copilot extension:
+   ```bash
+   gh extension install github/gh-copilot
+   ```
 
-- Uses `gh copilot` CLI for authentication — no API key required
-- Leverages existing Copilot subscription seamlessly
-- Custom QML API strategy with full chat service (Ai.qml)
+3. Active GitHub Copilot subscription and authentication:
+   ```bash
+   gh auth login
+   ```
 
-**Branch**: [`feature/copilot-integration`](../../tree/feature/copilot-integration)
-
----
-
-### 🌍 [Custom View & World Clocks](../../tree/feature/custom-view)
-UI enhancements to the sidebar and bar.
-
-- **World clocks widget** in the sidebar with multiple timezone support
-- **Work week number** displayed in the top bar clock
-- US date format (MM/dd) in the bar
-- Clocks sorted by UTC offset with "City, XX" labels
-
-**Branch**: [`feature/custom-view`](../../tree/feature/custom-view)
-
----
-
-### ⚙️ [Custom Configs](../../tree/feature/custom-configs)
-Personal configuration customizations and QoL improvements.
-
-- Custom Hyprland keybindings (Docker toggle, VPN shortcut, workspace management)
-- `nm-applet` as headless NetworkManager secret agent
-- Polkit fingerprint authentication support
-- Custom autostart entries and resource display options
-
-**Branch**: [`feature/custom-configs`](../../tree/feature/custom-configs)
-
----
-
-### 🛜 [WiFi Reconnect Fix](../../tree/fix/wifi-reconnect-after-password)
-Fixes a bug where WiFi failed to reconnect after entering a new password.
-
-- `connectProc.exec()` was incorrectly toggling `.running` instead of calling `.exec()`
-- Also fixes a null reference on retry
-
-**Branch**: [`fix/wifi-reconnect-after-password`](../../tree/fix/wifi-reconnect-after-password)
-
----
-
-## 📦 Installation
-
-### 1. Install the base shell
+#### Install the Feature
 
 ```bash
-git clone https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-./setup install
+# Copy the API strategy
+cp dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml \
+   ~/.config/quickshell/ii/services/ai/
+
+# Copy the updated Ai service
+cp dots/quickshell/ii/services/Ai.qml \
+   ~/.config/quickshell/ii/services/
+
+# Optional: Update the icon
+cp dots/illogical-impulse/config.json \
+   ~/.config/illogical-impulse/
 ```
 
-### 2. Apply features
+### Usage
 
+1. Open the AI sidebar (default: Super+A)
+2. Click the model selector dropdown
+3. Select "GitHub Copilot"
+4. Start chatting!
+
+### How It Works
+
+Unlike other AI models that use HTTP APIs, this integration:
+1. Converts chat messages to a format suitable for `gh copilot`
+2. Executes `gh copilot explain` or `gh copilot suggest` via CLI
+3. Streams the response back to the UI
+4. No API keys needed - uses your gh CLI authentication
+
+### Customization
+
+The implementation handles:
+- Multi-turn conversations
+- System prompts
+- Streaming responses
+- Error handling
+
+To modify behavior, edit `CopilotCliApiStrategy.qml`.
+
+### Troubleshooting
+
+**"gh: command not found"**
+- Install GitHub CLI (see prerequisites)
+
+**"Copilot extension not found"**
 ```bash
-# Interactive TUI — pick which features to apply
-./apply-features.sh
-
-# Or apply everything at once
-./apply-all-features.sh
+gh extension install github/gh-copilot
 ```
 
-This merges selected feature branches in the correct order, auto-resolves conflicts, backs up your config, and deploys. See [.github/README.md](.github/README.md) for full details.
-
-| Flag | Description |
-|------|-------------|
-| `--all` | Apply all features without TUI (apply-features.sh) |
-
-| `--no-backup` | Skip backing up current config |
-| `--dry-run` | Create integration branch but don't deploy |
-| `--keep-branch` | Preserve the integration branch after deploying |
-
-### Use Individual Features
-
-Each feature branch can also be used independently:
-
+**"Failed to log in to github.com"**
 ```bash
-git clone -b feature/gpu-npu-monitoring https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-# Follow instructions in GPU_NPU_MONITORING.md
+gh auth login
+# Follow the prompts to authenticate
 ```
 
-## 🔄 Staying Updated
-
-This fork tracks upstream changes from end-4's original repository:
-
+**"The token is invalid"**
 ```bash
-git remote add upstream https://github.com/end-4/dots-hyprland
-git fetch upstream
-git merge upstream/main
+gh auth refresh
 ```
 
-## 📚 Original Repository
+### Screenshots
 
-This is based on [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) — an amazing Hyprland configuration (illogical-impulse). All credit for the base configuration goes to end-4 and contributors.
-
-## 🤝 Contributing
-
-Feel free to:
-- Use these features in your own setup
-- Suggest improvements via issues
-- Submit pull requests for enhancements
-
-## 📝 License
-
-Same as the original repository. See [LICENSE](LICENSE) for details.
+[Add your screenshots here]
 
 ---
 
-**Upstream**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**This Fork**: Custom features by tslove923
+**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
+**Customization by**: tslove923
