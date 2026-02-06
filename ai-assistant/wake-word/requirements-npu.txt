@@ -1,0 +1,7 @@
+openwakeword>=0.6.0
+pyaudio>=0.2.13
+numpy>=1.24.0
+pydbus>=0.6.0
+openvino>=2024.0.0
+onnx>=1.15.0
+onnxruntime>=1.16.0
