@@ -2,6 +2,8 @@
 
 This configuration adds GPU and NPU usage indicators to the resource monitors in the dots-hyprland setup.
 
+![GPU and NPU Monitoring](.github/images/gpu-npu-monitoring.png)
+
 ## Requirements
 
 ### For GPU Monitoring
