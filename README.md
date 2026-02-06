@@ -1,151 +1,62 @@
-# dots-hyprland - Custom Features Fork
+# dots-hyprland - Custom Keybindings
 
-> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) (illogical-impulse)  
-> **Customizations by**: tslove923  
-> **Target Hardware**: Intel Lunar Lake (Arc GPU + NPU)
+> **Branch**: `feature/custom-keybinds`  
+> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-A personal fork of end-4's excellent dots-hyprland Quickshell configuration with custom features and hardware-specific enhancements. Each feature is developed in its own branch and can be used independently.
+## ⌨️ Custom Hyprland Keybindings
 
-## 🌟 Custom Features
+This branch contains personalized keyboard shortcuts for Hyprland.
 
-### 📊 [GPU & NPU Monitoring](../../tree/feature/gpu-npu-monitoring)
-Real-time GPU and NPU usage indicators in the Quickshell bar, tailored for Intel Lunar Lake.
+### Files Modified
 
-- **GPU**: DRM cycle counter monitoring (Render/Video/Compute engines) with frequency metrics
-- **NPU**: True compute utilization via `npu_busy_time_us` sysfs interface
-- Material Symbol icons: `stadia_controller` (GPU), `neurology` (NPU)
-- Per-engine popup details with CPU/GPU frequency readouts
-- Color-coded warnings at configurable thresholds
-- Indicator order: CPU → GPU → NPU → Memory → Swap
-- Requires `intel-gpu-tools` for GPU, NPU monitoring is built-in via sysfs
+- `dots/hypr/custom/keybinds.conf` - Custom key bindings
 
-**Branch**: [`feature/gpu-npu-monitoring`](../../tree/feature/gpu-npu-monitoring) · [Documentation](GPU_NPU_MONITORING.md)
+### Added Keybindings
 
----
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Super + Alt + V` | VPN Toggle | Opens VPN toggle script in kitty |
+| `Super + Alt + B` | Bluetui | Opens Bluetooth TUI manager |
+| `Super + Z` | Voxd Record | Triggers voxd recording |
+| `Super + Shift + [1-9]` | Move to Workspace | Moves active window to workspace 1-9 |
+| `Super + Alt + →` | Next Workspace | Switches to next workspace on current monitor |
+| `Super + Alt + ←` | Previous Workspace | Switches to previous workspace on current monitor |
 
-### 🔒 [VPN Indicator](../../tree/feature/vpn-indicator)
-Real-time VPN status indicator in the Quickshell bar.
-
-- Green `vpn_lock` icon when connected, grey when disconnected
-- Click to toggle VPN connection via custom script
-- Supports OpenVPN, WireGuard, and tun0 interfaces
-- Polls every 5 seconds with 2-second post-toggle refresh
-
-**Branch**: [`feature/vpn-indicator`](../../tree/feature/vpn-indicator)
-
----
-
-### 🤖 [GitHub Copilot Integration](../../tree/feature/copilot-integration)
-Integrates GitHub Copilot as an AI model in the sidebar chat panel.
-
-- Uses `gh copilot` CLI for authentication — no API key required
-- Leverages existing Copilot subscription seamlessly
-- Custom QML API strategy with full chat service (Ai.qml)
-
-**Branch**: [`feature/copilot-integration`](../../tree/feature/copilot-integration)
-
----
-
-### 🌍 [Custom View & World Clocks](../../tree/feature/custom-view)
-UI enhancements to the sidebar and bar.
-
-- **World clocks widget** in the sidebar with multiple timezone support
-- **Work week number** displayed in the top bar clock
-- US date format (MM/dd) in the bar
-- Clocks sorted by UTC offset with "City, XX" labels
-
-**Branch**: [`feature/custom-view`](../../tree/feature/custom-view)
-
----
-
-### ⚙️ [Custom Configs](../../tree/feature/custom-configs)
-Personal configuration customizations and QoL improvements.
-
-- Custom Hyprland keybindings (Docker toggle, VPN shortcut, workspace management)
-- `nm-applet` as headless NetworkManager secret agent
-- Polkit fingerprint authentication support
-- Custom autostart entries and resource display options
-
-**Branch**: [`feature/custom-configs`](../../tree/feature/custom-configs)
-
----
-
-### 🛜 [WiFi Reconnect Fix](../../tree/fix/wifi-reconnect-after-password)
-Fixes a bug where WiFi failed to reconnect after entering a new password.
-
-- `connectProc.exec()` was incorrectly toggling `.running` instead of calling `.exec()`
-- Also fixes a null reference on retry
-
-**Branch**: [`fix/wifi-reconnect-after-password`](../../tree/fix/wifi-reconnect-after-password)
-
----
-
-## 📦 Installation
-
-### 1. Install the base shell
+### Installation
 
 ```bash
-git clone https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-./setup install
+cp dots/hypr/custom/keybinds.conf ~/.config/hypr/custom/
 ```
 
-### 2. Apply features
+Hyprland should automatically reload the configuration.
 
-```bash
-# Interactive TUI — pick which features to apply
-./apply-features.sh
+### Customization
 
-# Or apply everything at once
-./apply-all-features.sh
+Edit `~/.config/hypr/custom/keybinds.conf` to add your own keybindings.
+
+Format:
+```conf
+bind = MODIFIERS, KEY, ACTION, PARAMETERS
 ```
 
-This merges selected feature branches in the correct order, auto-resolves conflicts, backs up your config, and deploys. See [.github/README.md](.github/README.md) for full details.
-
-| Flag | Description |
-|------|-------------|
-| `--all` | Apply all features without TUI (apply-features.sh) |
-
-| `--no-backup` | Skip backing up current config |
-| `--dry-run` | Create integration branch but don't deploy |
-| `--keep-branch` | Preserve the integration branch after deploying |
-
-### Use Individual Features
-
-Each feature branch can also be used independently:
-
-```bash
-git clone -b feature/gpu-npu-monitoring https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-# Follow instructions in GPU_NPU_MONITORING.md
+Examples:
+```conf
+bind = Super, T, exec, kitty           # Open terminal
+bind = Super Shift, Q, killactive,     # Close window
+bind = Super, F, fullscreen,           # Toggle fullscreen
 ```
 
-## 🔄 Staying Updated
+See [Hyprland Binds Wiki](https://wiki.hyprland.org/Configuring/Binds/) for more options.
 
-This fork tracks upstream changes from end-4's original repository:
+### Dependencies
 
-```bash
-git remote add upstream https://github.com/end-4/dots-hyprland
-git fetch upstream
-git merge upstream/main
-```
-
-## 📚 Original Repository
-
-This is based on [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) — an amazing Hyprland configuration (illogical-impulse). All credit for the base configuration goes to end-4 and contributors.
-
-## 🤝 Contributing
-
-Feel free to:
-- Use these features in your own setup
-- Suggest improvements via issues
-- Submit pull requests for enhancements
-
-## 📝 License
-
-Same as the original repository. See [LICENSE](LICENSE) for details.
+These keybindings require:
+- `kitty` - Terminal emulator
+- `bluetui` - Bluetooth TUI (optional)
+- `voxd` - Voice recording tool (optional)
+- VPN toggle script at `~/Documents/vpn-toggle.sh` (optional)
 
 ---
 
-**Upstream**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**This Fork**: Custom features by tslove923
+**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
+**Customization by**: tslove923
