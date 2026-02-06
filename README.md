@@ -7,12 +7,16 @@
 
 This branch adds a VPN connection indicator to the Quickshell status bar.
 
+### Screenshot
+
+![VPN Indicator in action](.github/images/vpn-indicator.png)
+
 ### Features
 
 - **Real-time monitoring**: Checks VPN status every 5 seconds
 - **Visual indicator**: Shows vpn_lock icon in the system tray
   - 🟢 Green when connected
-  - 🔴 Red when disconnected
+  - ⚫ Grey when disconnected
 - **Click to toggle**: Single click to run VPN toggle script
 - **Multiple VPN support**: Detects OpenVPN, WireGuard, or tun0 interface
 
@@ -76,10 +80,6 @@ Edit `dots/quickshell/ii/services/VpnStatus.qml` to customize:
 - VPN detection command (line 22)
 - Toggle script path (line 58)
 - Colors (line 17: `indicatorColor`)
-
-### Screenshots
-
-[Add your screenshots here]
 
 ---
 
