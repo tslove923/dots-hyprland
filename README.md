@@ -34,7 +34,35 @@ Changes date display from `dd/MM` (European) to `MM/dd` (US):
 > Changes to `Config.qml` only set defaults — the JSON file overrides them.  
 > To apply: update both the QML file and the `time` section in `config.json`.
 
-## 📦 Installation
+## � Polkit (GUI Auth with Fingerprint)
+
+The Docker toggle uses `pkexec` instead of `sudo`, showing a GUI auth dialog that supports fingerprint + password.
+
+### Fingerprint support
+
+Put `pam_fprintd.so` before `pam_unix.so` in `/etc/pam.d/polkit-1`:
+
+```
+#%PAM-1.0
+auth            sufficient      pam_fprintd.so
+auth            sufficient      pam_unix.so try_first_pass likeauth nullok
+auth            include         system-auth
+account         include         system-auth
+session         include         system-auth
+```
+
+### Disable auth chime
+
+Create `~/.local/share/knotifications6/polkit-kde-authentication-agent-1.notifyrc`:
+
+```ini
+[Event/authenticate]
+Action=
+```
+
+Then restart the agent: `killall polkit-kde-authentication-agent-1 && /usr/lib/polkit-kde-authentication-agent-1 &`
+
+## �📦 Installation
 
 ```bash
 # Sync keybinds
