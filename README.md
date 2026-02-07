@@ -11,10 +11,10 @@ Personalized customizations for Hyprland + QuickShell (illogical-impulse).
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Super + Z` | Nova voice typing | Triggers nova NPU voice-to-text via IPC |
-| `Super + Alt + D` | Docker toggle | Starts/stops Docker daemon |
+| `Super + Z` | Voice typing | Triggers voice-to-text via IPC |
+| `Super + Alt + D` | Docker toggle | Starts/stops Docker daemon (polkit GUI auth) |
 | `Super + Alt + B` | Bluetui | Opens Bluetooth TUI manager |
-| `Super + Alt + V` | VPN Toggle | Opens VPN toggle script in kitty |
+| `Super + Alt + V` | VPN toggle | Toggles VPN connection (polkit GUI auth) |
 | `Super + Shift + [0-9]` | Move to Workspace | Moves active window to workspace 1-9 |
 | `Super + Alt + →/←` | Next/Prev Workspace | Switches workspace on current monitor |
 
@@ -60,7 +60,6 @@ with open(p, 'w') as f: json.dump(d, f, indent=2)
 ## Dependencies
 
 - `kitty` — Terminal emulator
-- `nova-npu` — NPU voice assistant ([nova-npu](https://github.com/intel-sandbox/nova-npu)) (optional)
 - `bluetui` — Bluetooth TUI (optional)
 - VPN toggle script at `~/Documents/vpn-toggle.sh` (optional)
 
