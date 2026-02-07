@@ -1,59 +1,67 @@
-# dots-hyprland - Custom Keybindings
+# dots-hyprland — Custom Configs
 
-> **Branch**: `feature/custom-keybinds`  
+> **Branch**: `feature/custom-configs`  
 > **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-## ⌨️ Custom Hyprland Keybindings
+Personalized customizations for Hyprland + QuickShell (illogical-impulse).
 
-This branch contains personalized keyboard shortcuts for Hyprland.
+## ⌨️ Custom Keybindings
 
-### Files Modified
-
-- `dots/hypr/custom/keybinds.conf` - Custom key bindings
-
-### Added Keybindings
+**File**: `dots/.config/hypr/custom/keybinds.conf`
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `Super + Alt + V` | VPN Toggle | Opens VPN toggle script in kitty |
+| `Super + Z` | Nova voice typing | Triggers nova NPU voice-to-text via IPC |
+| `Super + Alt + D` | Docker toggle | Starts/stops Docker daemon |
 | `Super + Alt + B` | Bluetui | Opens Bluetooth TUI manager |
-| `Super + Z` | Voxd Record | Triggers voxd recording |
-| `Super + Shift + [1-9]` | Move to Workspace | Moves active window to workspace 1-9 |
-| `Super + Alt + →` | Next Workspace | Switches to next workspace on current monitor |
-| `Super + Alt + ←` | Previous Workspace | Switches to previous workspace on current monitor |
+| `Super + Alt + V` | VPN Toggle | Opens VPN toggle script in kitty |
+| `Super + Shift + [0-9]` | Move to Workspace | Moves active window to workspace 1-9 |
+| `Super + Alt + →/←` | Next/Prev Workspace | Switches workspace on current monitor |
 
-### Installation
+## 🕐 Date Format (US-style)
+
+**File**: `dots/.config/quickshell/ii/modules/common/Config.qml`
+
+Changes date display from `dd/MM` (European) to `MM/dd` (US):
+
+| Format | Default | Custom |
+|--------|---------|--------|
+| Top bar date | `ddd, dd/MM` | `ddd, MM/dd` |
+| Short date | `dd/MM` | `MM/dd` |
+| Date with year | `dd/MM/yyyy` | `MM/dd/yyyy` |
+
+> **Note**: QuickShell persists user settings to `~/.config/illogical-impulse/config.json`.  
+> Changes to `Config.qml` only set defaults — the JSON file overrides them.  
+> To apply: update both the QML file and the `time` section in `config.json`.
+
+## 📦 Installation
 
 ```bash
-cp dots/hypr/custom/keybinds.conf ~/.config/hypr/custom/
+# Sync keybinds
+cp dots/.config/hypr/custom/keybinds.conf ~/.config/hypr/custom/
+cp dots/.config/hypr/custom/scripts/*.sh ~/.config/hypr/custom/scripts/
+
+# Sync QuickShell config
+rsync -av dots/.config/quickshell/ii/modules/common/Config.qml \
+  ~/.config/quickshell/ii/modules/common/Config.qml
+
+# Update persisted QuickShell settings
+python3 -c "
+import json
+p = '$HOME/.config/illogical-impulse/config.json'
+with open(p) as f: d = json.load(f)
+d['time']['dateFormat'] = 'ddd, MM/dd'
+d['time']['shortDateFormat'] = 'MM/dd'
+d['time']['dateWithYearFormat'] = 'MM/dd/yyyy'
+with open(p, 'w') as f: json.dump(d, f, indent=2)
+"
 ```
 
-Hyprland should automatically reload the configuration.
+## Dependencies
 
-### Customization
-
-Edit `~/.config/hypr/custom/keybinds.conf` to add your own keybindings.
-
-Format:
-```conf
-bind = MODIFIERS, KEY, ACTION, PARAMETERS
-```
-
-Examples:
-```conf
-bind = Super, T, exec, kitty           # Open terminal
-bind = Super Shift, Q, killactive,     # Close window
-bind = Super, F, fullscreen,           # Toggle fullscreen
-```
-
-See [Hyprland Binds Wiki](https://wiki.hyprland.org/Configuring/Binds/) for more options.
-
-### Dependencies
-
-These keybindings require:
-- `kitty` - Terminal emulator
-- `bluetui` - Bluetooth TUI (optional)
-- `voxd` - Voice recording tool (optional)
+- `kitty` — Terminal emulator
+- `nova-npu` — NPU voice assistant ([nova-npu](https://github.com/intel-sandbox/nova-npu)) (optional)
+- `bluetui` — Bluetooth TUI (optional)
 - VPN toggle script at `~/Documents/vpn-toggle.sh` (optional)
 
 ---
