@@ -264,7 +264,14 @@ Singleton {
         }
     }
 
-    // NPU monitoring via sysfs
+    // NPU monitoring via runtime_active_time delta (nputop method)
+    // Reads /sys/class/accel/accel0/device/power/runtime_active_time (ms)
+    // and computes utilization as (active_time_delta / wall_time_delta)
+    property real previousNpuRuntime: -1
+    property real previousNpuTimestamp: -1
+    property string npuStatus: "suspended"
+    property string npuDeviceName: ""
+
     Timer {
         id: npuMonitorTimer
         interval: 3000
@@ -275,27 +282,60 @@ Singleton {
         }
     }
 
+    // Detect NPU device name at startup
+    Process {
+        id: npuNameProc
+        environment: ({ LANG: "C", LC_ALL: "C" })
+        command: ["bash", "-c", "lspci | grep -i 'Processing accelerators.*NPU' | sed 's/.*: //'"]
+        running: true
+        stdout: StdioCollector {
+            id: npuNameOutput
+            onStreamFinished: {
+                const name = npuNameOutput.text.trim()
+                if (name) root.npuDeviceName = name
+            }
+        }
+    }
+
     Process {
         id: npuCheckProc
-        environment: ({
-            LANG: "C",
-            LC_ALL: "C"
-        })
-        command: ["bash", "-c", "if [ -e /sys/class/accel/accel0/device/power/runtime_status ]; then status=$(cat /sys/class/accel/accel0/device/power/runtime_status); if [ \"$status\" = \"active\" ]; then echo 1; else echo 0; fi; else echo -1; fi"]
+        environment: ({ LANG: "C", LC_ALL: "C" })
+        command: ["bash", "-c", "if [ -e /sys/class/accel/accel0/device/power/runtime_active_time ]; then echo \"$(cat /sys/class/accel/accel0/device/power/runtime_active_time)|$(cat /sys/class/accel/accel0/device/power/runtime_status)\"; else echo 'unavailable'; fi"]
         running: false
         stdout: StdioCollector {
             id: npuOutputCollector
             onStreamFinished: {
-                const status = parseInt(npuOutputCollector.text.trim())
-                if (status >= 0) {
-                    root.npuAvailable = true
-                    // Active = 1 (100%), Suspended = 0 (0%)
-                    // This is a simplified metric - actual NPU load would need more sophisticated monitoring
-                    root.npuUsage = status
-                } else {
+                const output = npuOutputCollector.text.trim()
+                if (output === "unavailable") {
                     root.npuAvailable = false
                     root.npuUsage = 0
+                    return
                 }
+
+                root.npuAvailable = true
+                const parts = output.split("|")
+                const runtimeMs = parseFloat(parts[0])
+                const status = parts[1] || "unknown"
+                root.npuStatus = status
+
+                const now = Date.now()
+
+                if (root.previousNpuRuntime >= 0 && root.previousNpuTimestamp >= 0) {
+                    const runtimeDiff = runtimeMs - root.previousNpuRuntime
+                    const wallDiff = now - root.previousNpuTimestamp
+
+                    if (wallDiff > 0) {
+                        // runtime_active_time is in ms, wallDiff is in ms
+                        const usage = Math.min(runtimeDiff / wallDiff, 1.0)
+                        root.npuUsage = Math.max(usage, 0)
+                    }
+                } else {
+                    // First sample — no delta yet
+                    root.npuUsage = 0
+                }
+
+                root.previousNpuRuntime = runtimeMs
+                root.previousNpuTimestamp = now
             }
         }
     }
