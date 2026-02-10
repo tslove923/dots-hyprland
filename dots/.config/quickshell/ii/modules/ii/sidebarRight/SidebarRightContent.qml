@@ -102,6 +102,12 @@ Item {
                 Layout.fillWidth: true
             }
 
+            WorldClocks {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillHeight: false
+                Layout.fillWidth: true
+            }
+
             BottomWidgetGroup {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillHeight: false
