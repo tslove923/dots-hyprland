@@ -16,10 +16,10 @@ Rectangle {
     property var worldClocks: [
         { city: "Chandler, AZ",   tz: "America/Phoenix",       flag: "🇺🇸" },
         { city: "San José, CR",   tz: "America/Costa_Rica",    flag: "🇨🇷" },
-        { city: "Penang",         tz: "Asia/Kuala_Lumpur",     flag: "🇲🇾" },
-        { city: "Haifa",          tz: "Asia/Jerusalem",        flag: "🇮🇱" },
-        { city: "Bangalore",      tz: "Asia/Kolkata",          flag: "🇮🇳" },
-        { city: "Taipei",         tz: "Asia/Taipei",           flag: "🇹🇼" },
+        { city: "Penang, MY",     tz: "Asia/Kuala_Lumpur",     flag: "🇲🇾" },
+        { city: "Haifa, IL",      tz: "Asia/Jerusalem",        flag: "🇮🇱" },
+        { city: "Bangalore, IN",  tz: "Asia/Kolkata",          flag: "🇮🇳" },
+        { city: "Taipei, TW",     tz: "Asia/Taipei",           flag: "🇹🇼" },
     ]
 
     // Holds the resolved times: { "America/Phoenix": "14:30|09", ... }
