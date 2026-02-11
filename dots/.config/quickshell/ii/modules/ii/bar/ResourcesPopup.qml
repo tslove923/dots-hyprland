@@ -117,7 +117,7 @@ StyledPopup {
 
             StyledPopupHeaderRow {
                 icon: "neurology"
-                label: ResourceUsage.npuDeviceName || "NPU"
+                label: "NPU"
             }
             Column {
                 spacing: 4
