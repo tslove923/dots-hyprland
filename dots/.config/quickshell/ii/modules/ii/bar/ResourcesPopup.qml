@@ -91,7 +91,7 @@ StyledPopup {
                 StyledPopupValueRow {
                     icon: "speed"
                     label: Translation.tr("Frequency:")
-                    value: `${ResourceUsage.cpuFreqMhz} / ${ResourceUsage.cpuMaxFreqMhz} MHz`
+                    value: `${ResourceUsage.cpuFreqMhz} MHz`
                 }
             }
         }
@@ -115,7 +115,7 @@ StyledPopup {
                 StyledPopupValueRow {
                     icon: "speed"
                     label: Translation.tr("Frequency:")
-                    value: ResourceUsage.gpuFreqMhz > 0 ? `${ResourceUsage.gpuFreqMhz} / ${ResourceUsage.gpuMaxFreqMhz} MHz` : Translation.tr("Idle")
+                    value: ResourceUsage.gpuFreqMhz > 0 ? `${ResourceUsage.gpuFreqMhz} MHz` : Translation.tr("Idle")
                 }
             }
         }
@@ -139,7 +139,7 @@ StyledPopup {
                 StyledPopupValueRow {
                     icon: "speed"
                     label: Translation.tr("Frequency:")
-                    value: ResourceUsage.npuFreqMhz > 0 ? `${ResourceUsage.npuFreqMhz} / ${ResourceUsage.npuMaxFreqMhz} MHz` : Translation.tr("Suspended")
+                    value: ResourceUsage.npuFreqMhz > 0 ? `${ResourceUsage.npuFreqMhz} MHz` : Translation.tr("Suspended")
                 }
                 StyledPopupValueRow {
                     icon: "memory"
