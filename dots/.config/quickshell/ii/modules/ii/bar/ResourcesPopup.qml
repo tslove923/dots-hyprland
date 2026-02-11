@@ -127,6 +127,16 @@ StyledPopup {
                     value: `${Math.round(ResourceUsage.npuUsage * 100)}%`
                 }
                 StyledPopupValueRow {
+                    icon: "speed"
+                    label: Translation.tr("Frequency:")
+                    value: ResourceUsage.npuFreqMhz > 0 ? `${ResourceUsage.npuFreqMhz} / ${ResourceUsage.npuMaxFreqMhz} MHz` : Translation.tr("Suspended")
+                }
+                StyledPopupValueRow {
+                    icon: "memory"
+                    label: Translation.tr("Memory:")
+                    value: `${(ResourceUsage.npuMemoryBytes / (1024 * 1024)).toFixed(0)} MB`
+                }
+                StyledPopupValueRow {
                     icon: "power_settings_new"
                     label: Translation.tr("Status:")
                     value: ResourceUsage.npuStatus === "active" ? Translation.tr("Active") : Translation.tr("Suspended")

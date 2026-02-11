@@ -264,13 +264,15 @@ Singleton {
         }
     }
 
-    // NPU monitoring via runtime_active_time delta (nputop method)
-    // Reads /sys/class/accel/accel0/device/power/runtime_active_time (ms)
-    // and computes utilization as (active_time_delta / wall_time_delta)
-    property real previousNpuRuntime: -1
+    // NPU monitoring via npu_busy_time_us (actual compute utilization)
+    // Also reads frequency and memory utilization from sysfs
+    property real previousNpuBusyUs: -1
     property real previousNpuTimestamp: -1
     property string npuStatus: "suspended"
     property string npuDeviceName: ""
+    property int npuFreqMhz: 0
+    property int npuMaxFreqMhz: 0
+    property real npuMemoryBytes: 0
 
     Timer {
         id: npuMonitorTimer
@@ -282,7 +284,7 @@ Singleton {
         }
     }
 
-    // Detect NPU device name at startup
+    // Detect NPU device name and max frequency at startup
     Process {
         id: npuNameProc
         environment: ({ LANG: "C", LC_ALL: "C" })
@@ -300,7 +302,7 @@ Singleton {
     Process {
         id: npuCheckProc
         environment: ({ LANG: "C", LC_ALL: "C" })
-        command: ["bash", "-c", "if [ -e /sys/class/accel/accel0/device/power/runtime_active_time ]; then echo \"$(cat /sys/class/accel/accel0/device/power/runtime_active_time)|$(cat /sys/class/accel/accel0/device/power/runtime_status)\"; else echo 'unavailable'; fi"]
+        command: ["bash", "-c", "DEV=/sys/class/accel/accel0/device; if [ -e $DEV/npu_busy_time_us ]; then echo \"$(cat $DEV/npu_busy_time_us)|$(cat $DEV/power/runtime_status)|$(cat $DEV/npu_current_frequency_mhz)|$(cat $DEV/npu_max_frequency_mhz)|$(cat $DEV/npu_memory_utilization)\"; else echo 'unavailable'; fi"]
         running: false
         stdout: StdioCollector {
             id: npuOutputCollector
@@ -314,27 +316,27 @@ Singleton {
 
                 root.npuAvailable = true
                 const parts = output.split("|")
-                const runtimeMs = parseFloat(parts[0])
-                const status = parts[1] || "unknown"
-                root.npuStatus = status
+                const busyUs = parseFloat(parts[0])
+                root.npuStatus = parts[1] || "unknown"
+                root.npuFreqMhz = parseInt(parts[2]) || 0
+                root.npuMaxFreqMhz = parseInt(parts[3]) || 0
+                root.npuMemoryBytes = parseFloat(parts[4]) || 0
 
                 const now = Date.now()
 
-                if (root.previousNpuRuntime >= 0 && root.previousNpuTimestamp >= 0) {
-                    const runtimeDiff = runtimeMs - root.previousNpuRuntime
-                    const wallDiff = now - root.previousNpuTimestamp
+                if (root.previousNpuBusyUs >= 0 && root.previousNpuTimestamp >= 0) {
+                    const busyDiffUs = busyUs - root.previousNpuBusyUs
+                    const wallDiffUs = (now - root.previousNpuTimestamp) * 1000 // ms → μs
 
-                    if (wallDiff > 0) {
-                        // runtime_active_time is in ms, wallDiff is in ms
-                        const usage = Math.min(runtimeDiff / wallDiff, 1.0)
+                    if (wallDiffUs > 0) {
+                        const usage = Math.min(busyDiffUs / wallDiffUs, 1.0)
                         root.npuUsage = Math.max(usage, 0)
                     }
                 } else {
-                    // First sample — no delta yet
                     root.npuUsage = 0
                 }
 
-                root.previousNpuRuntime = runtimeMs
+                root.previousNpuBusyUs = busyUs
                 root.previousNpuTimestamp = now
             }
         }
