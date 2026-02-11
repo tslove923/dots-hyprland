@@ -25,12 +25,26 @@ Rectangle {
     // Holds the resolved times: { "America/Phoenix": "14:30|09", ... }
     property var tzTimes: ({})
 
-    // Build the shell command that prints time and day for each tz
+    // Clocks sorted by UTC offset difference from local time
+    property var sortedClocks: {
+        // Depend on tzOffsets so we re-sort when offsets update
+        const offsets = root.tzOffsets;
+        return [...worldClocks].sort((a, b) => {
+            const oa = offsets[a.tz] ?? 99999;
+            const ob = offsets[b.tz] ?? 99999;
+            return oa - ob;
+        });
+    }
+
+    // Holds UTC offset in minutes for each tz: { "America/Phoenix": -420, ... }
+    property var tzOffsets: ({})
+
+    // Build the shell command that prints time, day, and UTC offset for each tz
     function buildCommand() {
         let parts = [];
         for (let i = 0; i < worldClocks.length; i++) {
             const tz = worldClocks[i].tz;
-            parts.push(`echo "$(TZ='${tz}' date +'%-I:%M %p|%d')"`);
+            parts.push(`echo "$(TZ='${tz}' date +'%-I:%M %p|%d|%z')"`);
         }
         return parts.join("; ");
     }
@@ -62,10 +76,21 @@ Rectangle {
             onStreamFinished: {
                 const lines = tzOutput.text.trim().split("\n");
                 let result = {};
+                let offsets = {};
                 for (let i = 0; i < lines.length && i < root.worldClocks.length; i++) {
                     result[root.worldClocks[i].tz] = lines[i].trim();
+                    // Parse UTC offset from %z (e.g. "+0530", "-0700")
+                    const parts = lines[i].trim().split("|");
+                    if (parts.length >= 3) {
+                        const oz = parts[2];
+                        const sign = oz.startsWith("-") ? -1 : 1;
+                        const hh = parseInt(oz.slice(1, 3));
+                        const mm = parseInt(oz.slice(3, 5));
+                        offsets[root.worldClocks[i].tz] = sign * (hh * 60 + mm);
+                    }
                 }
                 root.tzTimes = result;
+                root.tzOffsets = offsets;
             }
         }
     }
@@ -105,7 +130,7 @@ Rectangle {
 
         // Clock rows
         Repeater {
-            model: root.worldClocks
+            model: root.sortedClocks
 
             RowLayout {
                 required property var modelData
