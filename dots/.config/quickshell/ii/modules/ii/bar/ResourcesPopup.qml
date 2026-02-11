@@ -88,6 +88,11 @@ StyledPopup {
                     label: Translation.tr("Load:")
                     value: `${Math.round(ResourceUsage.cpuUsage * 100)}%`
                 }
+                StyledPopupValueRow {
+                    icon: "speed"
+                    label: Translation.tr("Frequency:")
+                    value: `${ResourceUsage.cpuFreqMhz} / ${ResourceUsage.cpuMaxFreqMhz} MHz`
+                }
             }
         }
 
@@ -106,6 +111,11 @@ StyledPopup {
                     icon: "bolt"
                     label: Translation.tr("Load:")
                     value: `${Math.round(ResourceUsage.gpuUsage * 100)}%`
+                }
+                StyledPopupValueRow {
+                    icon: "speed"
+                    label: Translation.tr("Frequency:")
+                    value: ResourceUsage.gpuFreqMhz > 0 ? `${ResourceUsage.gpuFreqMhz} / ${ResourceUsage.gpuMaxFreqMhz} MHz` : Translation.tr("Idle")
                 }
             }
         }

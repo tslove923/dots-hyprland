@@ -26,6 +26,13 @@ Singleton {
     property bool gpuAvailable: false
     property bool npuAvailable: false
 
+    // CPU frequency (MHz)
+    property int cpuFreqMhz: 0
+    property int cpuMaxFreqMhz: 0
+    // GPU frequency (MHz)
+    property int gpuFreqMhz: 0
+    property int gpuMaxFreqMhz: 0
+
     property string maxAvailableMemoryString: kbToGbString(ResourceUsage.memoryTotal)
     property string maxAvailableSwapString: kbToGbString(ResourceUsage.swapTotal)
     property string maxAvailableCpuString: "--"
@@ -114,6 +121,22 @@ Singleton {
                 previousCpuStats = { total, idle }
             }
 
+            // Read CPU frequency (kHz -> MHz)
+            fileCpuCurFreq.reload()
+            fileCpuMaxFreq.reload()
+            const curFreqKhz = parseInt(fileCpuCurFreq.text()) || 0
+            const maxFreqKhz = parseInt(fileCpuMaxFreq.text()) || 0
+            cpuFreqMhz = Math.round(curFreqKhz / 1000)
+            cpuMaxFreqMhz = Math.round(maxFreqKhz / 1000)
+
+            // Read GPU frequency (already in MHz)
+            fileGpuActFreq.reload()
+            fileGpuMaxFreq.reload()
+            const gpuAct = parseInt(fileGpuActFreq.text()) || 0
+            const gpuMax = parseInt(fileGpuMaxFreq.text()) || 0
+            gpuFreqMhz = gpuAct
+            gpuMaxFreqMhz = gpuMax
+
             root.updateHistories()
             interval = Config.options?.resources?.updateInterval ?? 3000
         }
@@ -121,6 +144,10 @@ Singleton {
 
 	FileView { id: fileMeminfo; path: "/proc/meminfo" }
     FileView { id: fileStat; path: "/proc/stat" }
+    FileView { id: fileCpuCurFreq; path: "/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq" }
+    FileView { id: fileCpuMaxFreq; path: "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq" }
+    FileView { id: fileGpuActFreq; path: "/sys/class/drm/card0/device/tile0/gt0/freq0/act_freq" }
+    FileView { id: fileGpuMaxFreq; path: "/sys/class/drm/card0/device/tile0/gt0/freq0/max_freq" }
 
     Process {
         id: findCpuMaxFreqProc
