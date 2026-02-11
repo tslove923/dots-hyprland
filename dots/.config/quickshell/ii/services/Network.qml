@@ -121,8 +121,9 @@ Singleton {
             }
         }
         onExited: (exitCode, exitStatus) => {
+            if (!root.wifiConnectTarget) return;
             root.wifiConnectTarget.askingPassword = (exitCode !== 0)
-            root.wifiConnectTarget = null
+            if (exitCode === 0) root.wifiConnectTarget = null
         }
     }
 
@@ -136,8 +137,9 @@ Singleton {
     Process {
         id: changePasswordProc
         onExited: { // Re-attempt connection after changing password
-            connectProc.running = false
-            connectProc.running = true
+            if (root.wifiConnectTarget) {
+                connectProc.exec(["nmcli", "dev", "wifi", "connect", root.wifiConnectTarget.ssid])
+            }
         }
     }
 
