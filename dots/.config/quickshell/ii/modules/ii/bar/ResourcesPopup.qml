@@ -21,63 +21,6 @@ StyledPopup {
             spacing: 8
 
             StyledPopupHeaderRow {
-                icon: "memory"
-                label: "RAM"
-            }
-            Column {
-                spacing: 4
-                StyledPopupValueRow {
-                    icon: "clock_loader_60"
-                    label: Translation.tr("Used:")
-                    value: root.formatKB(ResourceUsage.memoryUsed)
-                }
-                StyledPopupValueRow {
-                    icon: "check_circle"
-                    label: Translation.tr("Free:")
-                    value: root.formatKB(ResourceUsage.memoryFree)
-                }
-                StyledPopupValueRow {
-                    icon: "empty_dashboard"
-                    label: Translation.tr("Total:")
-                    value: root.formatKB(ResourceUsage.memoryTotal)
-                }
-            }
-        }
-
-        Column {
-            visible: ResourceUsage.swapTotal > 0
-            anchors.top: parent.top
-            spacing: 8
-
-            StyledPopupHeaderRow {
-                icon: "swap_horiz"
-                label: "Swap"
-            }
-            Column {
-                spacing: 4
-                StyledPopupValueRow {
-                    icon: "clock_loader_60"
-                    label: Translation.tr("Used:")
-                    value: root.formatKB(ResourceUsage.swapUsed)
-                }
-                StyledPopupValueRow {
-                    icon: "check_circle"
-                    label: Translation.tr("Free:")
-                    value: root.formatKB(ResourceUsage.swapFree)
-                }
-                StyledPopupValueRow {
-                    icon: "empty_dashboard"
-                    label: Translation.tr("Total:")
-                    value: root.formatKB(ResourceUsage.swapTotal)
-                }
-            }
-        }
-
-        Column {
-            anchors.top: parent.top
-            spacing: 8
-
-            StyledPopupHeaderRow {
                 icon: "planner_review"
                 label: "CPU"
             }
@@ -150,6 +93,63 @@ StyledPopup {
                     icon: "power_settings_new"
                     label: Translation.tr("Status:")
                     value: ResourceUsage.npuStatus === "active" ? Translation.tr("Active") : Translation.tr("Suspended")
+                }
+            }
+        }
+
+        Column {
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "memory"
+                label: "RAM"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "clock_loader_60"
+                    label: Translation.tr("Used:")
+                    value: root.formatKB(ResourceUsage.memoryUsed)
+                }
+                StyledPopupValueRow {
+                    icon: "check_circle"
+                    label: Translation.tr("Free:")
+                    value: root.formatKB(ResourceUsage.memoryFree)
+                }
+                StyledPopupValueRow {
+                    icon: "empty_dashboard"
+                    label: Translation.tr("Total:")
+                    value: root.formatKB(ResourceUsage.memoryTotal)
+                }
+            }
+        }
+
+        Column {
+            visible: ResourceUsage.swapTotal > 0
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "swap_horiz"
+                label: "Swap"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "clock_loader_60"
+                    label: Translation.tr("Used:")
+                    value: root.formatKB(ResourceUsage.swapUsed)
+                }
+                StyledPopupValueRow {
+                    icon: "check_circle"
+                    label: Translation.tr("Free:")
+                    value: root.formatKB(ResourceUsage.swapFree)
+                }
+                StyledPopupValueRow {
+                    icon: "empty_dashboard"
+                    label: Translation.tr("Total:")
+                    value: root.formatKB(ResourceUsage.swapTotal)
                 }
             }
         }

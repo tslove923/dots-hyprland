@@ -18,6 +18,29 @@ MouseArea {
 
         Resource {
             Layout.alignment: Qt.AlignHCenter
+            iconName: "planner_review"
+            percentage: ResourceUsage.cpuUsage
+            warningThreshold: Config.options.bar.resources.cpuWarningThreshold
+        }
+
+        Resource {
+            Layout.alignment: Qt.AlignHCenter
+            iconName: "stadia_controller"
+            percentage: ResourceUsage.gpuUsage
+            visible: ResourceUsage.gpuAvailable
+            warningThreshold: Config.options.bar.resources.gpuWarningThreshold
+        }
+
+        Resource {
+            Layout.alignment: Qt.AlignHCenter
+            iconName: "neurology"
+            percentage: ResourceUsage.npuUsage
+            visible: ResourceUsage.npuAvailable
+            warningThreshold: Config.options.bar.resources.npuWarningThreshold
+        }
+
+        Resource {
+            Layout.alignment: Qt.AlignHCenter
             iconName: "memory"
             percentage: ResourceUsage.memoryUsedPercentage
             warningThreshold: Config.options.bar.resources.memoryWarningThreshold
@@ -28,13 +51,6 @@ MouseArea {
             iconName: "swap_horiz"
             percentage: ResourceUsage.swapUsedPercentage
             warningThreshold: Config.options.bar.resources.swapWarningThreshold
-        }
-
-        Resource {
-            Layout.alignment: Qt.AlignHCenter
-            iconName: "planner_review"
-            percentage: ResourceUsage.cpuUsage
-            warningThreshold: Config.options.bar.resources.cpuWarningThreshold
         }
 
     }
