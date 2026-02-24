@@ -16,10 +16,15 @@ This branch adds real-time GPU and NPU usage indicators for Intel Lunar Lake SoC
 - **GPU Monitoring**: Real-time usage tracking via DRM cycle counters
   - Works with Intel Xe driver (Lunar Lake Arc Graphics)
   - Supports render, video, and compute engines
+   - Includes live GPU frequency display in popup
   - Material Symbols icon: `stadia_controller`
-- **NPU Monitoring**: Intel NPU power state detection
-  - Shows Active/Suspended status
+- **NPU Monitoring**: Real compute utilization and status
+   - Uses `npu_busy_time_us` delta method (nputop-style) for granular load %
+   - Shows Active/Suspended status, live frequency, and memory usage
   - Material Symbols icon: `neurology`
+- **Realtime Updates**: All metrics refresh continuously at `resources.updateInterval`
+   - Bar indicators and popup values update without reopening UI
+   - CPU/GPU/NPU load and frequency values stay in sync with current activity
 - **Multiple UI Components**: Indicators in bar, vertical bar, popup tooltip, and full overlay
 - **Configurable thresholds**: Warning colors at 90% usage (customizable)
 - **Always-show option**: Keep indicators visible even at 0% usage
@@ -109,9 +114,10 @@ Edit `~/.config/illogical-impulse/config.json`:
 5. Works with Intel Xe driver (Lunar Lake) and i915
 
 **NPU Monitoring**:
-1. Reads power state from `/sys/class/accel/accel0/device/power/runtime_status`
-2. Returns 100% (Active) or 0% (Suspended)
-3. Future: Could integrate with Intel NPU driver for detailed metrics
+1. Reads `npu_busy_time_us` and computes utilization from deltas over time
+2. Reads runtime power state (`active`/`suspended`) from sysfs
+3. Reads current NPU frequency and memory usage for popup detail rows
+4. Produces realtime % load instead of binary active/suspended-only output
 
 ### Troubleshooting
 
