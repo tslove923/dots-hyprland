@@ -1,28 +1,19 @@
-# dots-hyprland — Custom Configs
+# dots-hyprland — US Date Format & World Clocks
 
-> **Branch**: `feature/custom-configs`  
+> **Branch**: `feature/us-clock-view-worldclocks`  
 > **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-Personalized customizations for Hyprland + QuickShell (illogical-impulse).
+QuickShell customizations for US-style date formatting, work week display in the top bar, and a world clocks widget in the sidebar.
 
-## ⌨️ Custom Keybindings
+## 🕐 Top Bar — US Date Format & Work Week
 
-**File**: `dots/.config/hypr/custom/keybinds.conf`
+![Top bar with US date format and work week](/.github/assets/topbar-us-date.png)
 
-| Shortcut | Action | Description |
-|----------|--------|-------------|
-| `Super + Z` | Voice typing | Triggers voice-to-text via IPC |
-| `Super + Alt + D` | Docker toggle | Starts/stops Docker daemon (polkit GUI auth) |
-| `Super + Alt + B` | Bluetui | Opens Bluetooth TUI manager |
-| `Super + Alt + V` | VPN toggle | Toggles VPN connection (polkit GUI auth) |
-| `Super + Shift + [0-9]` | Move to Workspace | Moves active window to workspace 1-9 |
-| `Super + Alt + →/←` | Next/Prev Workspace | Switches workspace on current monitor |
+Changes the top bar clock to show **US date format** (`MM/dd`) and the **ISO work week** number.
 
-## 🕐 Date Format (US-style)
+### Date format changes
 
 **File**: `dots/.config/quickshell/ii/modules/common/Config.qml`
-
-Changes date display from `dd/MM` (European) to `MM/dd` (US):
 
 | Format | Default | Custom |
 |--------|---------|--------|
@@ -30,66 +21,66 @@ Changes date display from `dd/MM` (European) to `MM/dd` (US):
 | Short date | `dd/MM` | `MM/dd` |
 | Date with year | `dd/MM/yyyy` | `MM/dd/yyyy` |
 
+### Work week display
+
+**Files**: `ClockWidget.qml`, `DateTime.qml`
+
+Adds an ISO week number (e.g. `W10`) next to the date in the top bar. The `DateTime` service exposes a `workWeek` property computed from `Qt.formatDateTime`.
+
 > **Note**: QuickShell persists user settings to `~/.config/illogical-impulse/config.json`.  
 > Changes to `Config.qml` only set defaults — the JSON file overrides them.  
 > To apply: update both the QML file and the `time` section in `config.json`.
 
-## � Polkit (GUI Auth with Fingerprint)
+## 🌍 Sidebar — World Clocks
 
-The Docker toggle uses `pkexec` instead of `sudo`, showing a GUI auth dialog that supports fingerprint + password.
+![World clocks widget in sidebar](/.github/assets/world-clocks.png)
 
-### Fingerprint support
+A new **World Clocks** panel in the right sidebar showing multiple time zones, sorted by UTC offset.
 
-Put `pam_fprintd.so` before `pam_unix.so` in `/etc/pam.d/polkit-1`:
+**Files**:
+- `WorldClocks.qml` — New widget
+- `SidebarRightContent.qml` — Wires widget into sidebar
 
-```
-#%PAM-1.0
-auth            sufficient      pam_fprintd.so
-auth            sufficient      pam_unix.so try_first_pass likeauth nullok
-auth            include         system-auth
-account         include         system-auth
-session         include         system-auth
-```
+### Configured time zones
 
-### Disable auth chime
+| City | Time Zone |
+|------|-----------|
+| London, UK | Europe/London |
+| Gdansk, PL | Europe/Warsaw |
+| Bangalore, IN | Asia/Kolkata |
+| Penang, MY | Asia/Kuala_Lumpur |
+| Shanghai, CN | Asia/Shanghai |
 
-Create `~/.local/share/knotifications6/polkit-kde-authentication-agent-1.notifyrc`:
+Clocks display the city label, current time, UTC offset, and day difference relative to local time. Labels use a consistent `City, XX` format.
 
-```ini
-[Event/authenticate]
-Action=
-```
-
-Then restart the agent: `killall polkit-kde-authentication-agent-1 && /usr/lib/polkit-kde-authentication-agent-1 &`
-
-## �📦 Installation
+## 📦 Installation
 
 ```bash
-# Sync keybinds
-cp dots/.config/hypr/custom/keybinds.conf ~/.config/hypr/custom/
-cp dots/.config/hypr/custom/scripts/*.sh ~/.config/hypr/custom/scripts/
-
-# Sync QuickShell config
-rsync -av dots/.config/quickshell/ii/modules/common/Config.qml \
-  ~/.config/quickshell/ii/modules/common/Config.qml
+# Sync QuickShell modules
+for f in \
+  modules/common/Config.qml \
+  modules/ii/bar/ClockWidget.qml \
+  modules/ii/sidebarRight/SidebarRightContent.qml \
+  modules/ii/sidebarRight/WorldClocks.qml \
+  services/DateTime.qml; do
+  cp "dots/.config/quickshell/ii/$f" \
+     "$HOME/.config/quickshell/ii/$f"
+done
 
 # Update persisted QuickShell settings
 python3 -c "
-import json
-p = '$HOME/.config/illogical-impulse/config.json'
-with open(p) as f: d = json.load(f)
+import json, pathlib
+p = pathlib.Path.home() / '.config/illogical-impulse/config.json'
+d = json.loads(p.read_text())
 d['time']['dateFormat'] = 'ddd, MM/dd'
 d['time']['shortDateFormat'] = 'MM/dd'
 d['time']['dateWithYearFormat'] = 'MM/dd/yyyy'
-with open(p, 'w') as f: json.dump(d, f, indent=2)
+p.write_text(json.dumps(d, indent=2))
 "
+
+# Restart QuickShell to pick up changes
+qs -c ii &
 ```
-
-## Dependencies
-
-- `kitty` — Terminal emulator
-- `bluetui` — Bluetooth TUI (optional)
-- VPN toggle script at `~/Documents/vpn-toggle.sh` (optional)
 
 ---
 
