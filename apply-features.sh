@@ -484,6 +484,26 @@ for branch in "${SELECTED_BRANCHES[@]}"; do
                     fi
                     rm -f "$ancestor" "$ours" "$theirs"
                     ;;
+                dots/.config/hypr/hyprland/general.conf|dots/.config/hypr/hypridle.conf)
+                    # Hyprland configs: 3-way merge, fallback to accept ours
+                    ancestor="$(mktemp)"
+                    ours="$(mktemp)"
+                    theirs="$(mktemp)"
+                    git show "main:$cfile" > "$ancestor" 2>/dev/null || touch "$ancestor"
+                    git show :2:"$cfile" > "$ours" 2>/dev/null || touch "$ours"
+                    git show :3:"$cfile" > "$theirs" 2>/dev/null || touch "$theirs"
+                    if diff3 -m "$ours" "$ancestor" "$theirs" > "$cfile.merged" 2>/dev/null && ! grep -q '<<<<<<<' "$cfile.merged"; then
+                        mv "$cfile.merged" "$cfile"
+                        git add "$cfile"
+                        info "  Auto-resolved (3-way merge): $cfile"
+                    else
+                        rm -f "$cfile.merged"
+                        git checkout --ours "$cfile" 2>/dev/null
+                        git add "$cfile"
+                        info "  Auto-resolved (keep ours): $cfile"
+                    fi
+                    rm -f "$ancestor" "$ours" "$theirs"
+                    ;;
                 *)
                     err "  UNHANDLED CONFLICT: $cfile"
                     RESOLVED=false
