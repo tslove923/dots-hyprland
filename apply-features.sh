@@ -719,8 +719,8 @@ if [[ -d "dots/quickshell" ]]; then
             # The merged version was already deployed in Step 5a and should
             # contain changes from ALL branches. Check if the overlay adds
             # anything the merged version doesn't have.
-            overlay_unique="$(diff "$merged_src" "$overlay_file" | grep '^>' | wc -l)"
-            merged_has_overlay="$(diff "$overlay_file" "$deployed" | grep '^>' | wc -l)"
+            overlay_unique="$(diff "$merged_src" "$overlay_file" 2>/dev/null | grep '^>' | wc -l || echo 0)"
+            merged_has_overlay="$(diff "$overlay_file" "$deployed" 2>/dev/null | grep '^>' | wc -l || echo 0)"
 
             if [[ "$overlay_unique" -eq 0 ]]; then
                 # Overlay is identical or a subset of the merged version — skip
