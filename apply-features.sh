@@ -603,94 +603,191 @@ fi
 
 step "Step 5: Deploy merged configs"
 
-# 5a. Sync dots/.config/ → ~/.config/
-#     We use rsync (no --delete) to layer on top of existing config
-#     without removing files that the base install provides.
+# ─── Surgical deploy helpers ────────────────────────────────────────────────
+# Only touch files whose content actually differs from what's already live.
+# No .bak or .new files — either deploy cleanly or 3-way merge.
 
-info "Deploying dots/.config/ → $CONFIG_HOME/"
+DEPLOY_NEW=0
+DEPLOY_UPDATED=0
+DEPLOY_SKIPPED=0
+DEPLOY_MERGED=0
 
-# Quickshell (full sync — this is the main UI config)
+# deploy_file SRC DEST — copy only if content differs or dest is new
+deploy_file() {
+    local src="$1" dest="$2"
+    mkdir -p "$(dirname "$dest")"
+    if [[ ! -f "$dest" ]]; then
+        cp "$src" "$dest"
+        DEPLOY_NEW=$((DEPLOY_NEW + 1))
+        return 0
+    fi
+    if ! cmp -s "$src" "$dest"; then
+        cp "$src" "$dest"
+        DEPLOY_UPDATED=$((DEPLOY_UPDATED + 1))
+        return 0
+    fi
+    DEPLOY_SKIPPED=$((DEPLOY_SKIPPED + 1))
+    return 1
+}
+
+# deploy_tree SRC_DIR DEST_DIR [EXCLUDE...] — recursively deploy only changed files
+deploy_tree() {
+    local src_dir="$1" dest_dir="$2"
+    shift 2
+    local -a excludes=("$@")
+    while IFS= read -r src_file; do
+        local rel="${src_file#$src_dir/}"
+        # Check excludes
+        local skip=false
+        for excl in "${excludes[@]}"; do
+            [[ "$rel" == $excl ]] && skip=true && break
+        done
+        $skip && continue
+        deploy_file "$src_file" "$dest_dir/$rel"
+    done < <(find "$src_dir" -type f)
+}
+
+# deploy_merge SRC DEST ANCESTOR_REF — 3-way merge preserving user changes
+# Uses main's version as common ancestor. If user hasn't changed the file,
+# just deploy. If user has changes, attempt to merge both.
+deploy_merge() {
+    local src="$1" dest="$2" ancestor_ref="$3"
+    mkdir -p "$(dirname "$dest")"
+
+    if [[ ! -f "$dest" ]]; then
+        cp "$src" "$dest"
+        DEPLOY_NEW=$((DEPLOY_NEW + 1))
+        return 0
+    fi
+
+    # If src and dest are identical, nothing to do
+    if cmp -s "$src" "$dest"; then
+        DEPLOY_SKIPPED=$((DEPLOY_SKIPPED + 1))
+        return 1
+    fi
+
+    # Get the common ancestor (main's version of this file)
+    local ancestor
+    ancestor="$(mktemp)"
+    if ! git show "$ancestor_ref" > "$ancestor" 2>/dev/null; then
+        # No ancestor available — can't merge, just deploy
+        cp "$src" "$dest"
+        DEPLOY_UPDATED=$((DEPLOY_UPDATED + 1))
+        rm -f "$ancestor"
+        return 0
+    fi
+
+    # If dest is unchanged from ancestor, user never customized → just deploy
+    if cmp -s "$ancestor" "$dest"; then
+        cp "$src" "$dest"
+        DEPLOY_UPDATED=$((DEPLOY_UPDATED + 1))
+        rm -f "$ancestor"
+        return 0
+    fi
+
+    # Both sides changed — attempt 3-way merge
+    # ours=dest (user's live), ancestor=main's base, theirs=src (new from branch)
+    local merged
+    merged="$(mktemp)"
+    if diff3 -m "$dest" "$ancestor" "$src" > "$merged" 2>/dev/null && ! grep -q '<<<<<<<' "$merged"; then
+        cp "$merged" "$dest"
+        DEPLOY_MERGED=$((DEPLOY_MERGED + 1))
+        info "  3-way merged: $(basename "$dest")"
+    else
+        # Conflict — keep user's version, warn
+        warn "  Merge conflict in $(basename "$dest") — user's version kept"
+        warn "    Review new version: git show ${INTEGRATION_BRANCH}:$(git ls-files --full-name "$src" 2>/dev/null || echo "$src")"
+    fi
+    rm -f "$ancestor" "$merged"
+}
+
+# ─── 5a. Deploy configs ────────────────────────────────────────────────────────
+
+info "Deploying dots/.config/ → $CONFIG_HOME/ (surgical — only changed files)"
+
+# Quickshell (main UI config — deploy only changed files)
 if [[ -d "dots/.config/quickshell" ]]; then
-    rsync -a --backup --suffix=".bak-${TIMESTAMP}" \
-        "dots/.config/quickshell/" "$CONFIG_HOME/quickshell/"
+    deploy_tree "dots/.config/quickshell" "$CONFIG_HOME/quickshell"
     log "Deployed: quickshell config"
 fi
 
-# Hyprland — sync hyprland/ subdir (core configs)
+# Hyprland — hyprland/ subdir (core configs)
+# keybinds.conf gets 3-way merge to preserve user customizations
 if [[ -d "dots/.config/hypr/hyprland" ]]; then
-    rsync -a "dots/.config/hypr/hyprland/" "$CONFIG_HOME/hypr/hyprland/"
-    log "Deployed: hypr/hyprland/"
+    # Deploy everything except keybinds.conf normally
+    while IFS= read -r src_file; do
+        rel="${src_file#dots/.config/hypr/hyprland/}"
+        if [[ "$rel" == "keybinds.conf" ]]; then
+            deploy_merge "$src_file" "$CONFIG_HOME/hypr/hyprland/keybinds.conf" \
+                "main:dots/.config/hypr/hyprland/keybinds.conf"
+        else
+            deploy_file "$src_file" "$CONFIG_HOME/hypr/hyprland/$rel"
+        fi
+    done < <(find "dots/.config/hypr/hyprland" -type f)
+    log "Deployed: hypr/hyprland/ (keybinds.conf merged)"
 fi
 
-# Hyprland — custom configs (DON'T overwrite if user has modified them, 
-# unless they came from our branches)
+# Hyprland — custom configs
+# These are user-facing configs — 3-way merge .conf files, deploy scripts normally
 if [[ -d "dots/.config/hypr/custom" ]]; then
-    # For scripts and new files, always copy
-    rsync -a "dots/.config/hypr/custom/scripts/" "$CONFIG_HOME/hypr/custom/scripts/" 2>/dev/null || true
-    # For config files, use --ignore-existing to not overwrite user modifications
-    # But on a FRESH install (the intended use case) these won't exist yet
+    # Scripts: deploy only changed
+    if [[ -d "dots/.config/hypr/custom/scripts" ]]; then
+        deploy_tree "dots/.config/hypr/custom/scripts" "$CONFIG_HOME/hypr/custom/scripts"
+    fi
+    # Config files: 3-way merge to preserve user edits
     for conf in "dots/.config/hypr/custom/"*.conf; do
         [[ -f "$conf" ]] || continue
-        target="$CONFIG_HOME/hypr/custom/$(basename "$conf")"
-        if [[ ! -f "$target" ]]; then
-            mkdir -p "$(dirname "$target")"
-            cp "$conf" "$target"
-            log "Deployed (new): hypr/custom/$(basename "$conf")"
-        else
-            # On fresh install this shouldn't happen, but merge if it does
-            cp "$conf" "${target}.new"
-            info "Existing custom config preserved. New version at: ${target}.new"
-        fi
+        local_name="$(basename "$conf")"
+        deploy_merge "$conf" "$CONFIG_HOME/hypr/custom/$local_name" \
+            "main:dots/.config/hypr/custom/$local_name"
     done
+    log "Deployed: hypr/custom/"
 fi
 
-# Hyprland — top-level configs (auto-backup existing)
-# monitors.conf is excluded — it contains hardware-specific scaling/layout
-# that should be set per-machine and not overwritten by the repo default.
+# Hyprland — top-level configs (deploy only if changed)
+# monitors.conf is excluded — hardware-specific, set per-machine.
 for conf in hyprland.conf hyprlock.conf workspaces.conf hypridle.conf; do
     if [[ -f "dots/.config/hypr/$conf" ]]; then
-        target="$CONFIG_HOME/hypr/$conf"
-        if [[ -f "$target" ]]; then
-            cp "$target" "${target}.bak-${TIMESTAMP}" 2>/dev/null || true
-        fi
-        cp "dots/.config/hypr/$conf" "$target"
+        deploy_file "dots/.config/hypr/$conf" "$CONFIG_HOME/hypr/$conf"
     fi
 done
 log "Deployed: hypr top-level configs (monitors.conf preserved)"
 
 # Fish config (exclude conf.d/ to preserve user's fish plugins)
 if [[ -d "dots/.config/fish" ]]; then
-    rsync -a --exclude='conf.d/' "dots/.config/fish/" "$CONFIG_HOME/fish/"
+    deploy_tree "dots/.config/fish" "$CONFIG_HOME/fish" "conf.d/*"
     log "Deployed: fish config (preserved conf.d/)"
 fi
 
-# Misc config dirs
+# Misc config dirs — deploy only changed files
 for dir in foot fuzzel kitty matugen mpv wlogout Kvantum fontconfig \
            xdg-desktop-portal kde-material-you-colors zshrc.d; do
     if [[ -d "dots/.config/$dir" ]]; then
-        rsync -a "dots/.config/$dir/" "$CONFIG_HOME/$dir/"
+        deploy_tree "dots/.config/$dir" "$CONFIG_HOME/$dir"
         log "Deployed: $dir"
     fi
 done
 
-# Misc config files
+# Misc config files — deploy only if changed
 for f in starship.toml chrome-flags.conf code-flags.conf thorium-flags.conf \
          darklyrc dolphinrc kdeglobals konsolerc; do
     if [[ -f "dots/.config/$f" ]]; then
-        cp "dots/.config/$f" "$CONFIG_HOME/$f"
+        deploy_file "dots/.config/$f" "$CONFIG_HOME/$f"
     fi
 done
 log "Deployed: misc config files"
 
-# 5b. Deploy dots/.local/share/ → ~/.local/share/
+info "Deploy stats: ${DEPLOY_NEW} new, ${DEPLOY_UPDATED} updated, ${DEPLOY_MERGED} merged, ${DEPLOY_SKIPPED} unchanged"
+
+# 5b. Deploy dots/.local/share/ → ~/.local/share/ (only changed)
 if [[ -d "dots/.local/share" ]]; then
-    rsync -a "dots/.local/share/" "$DATA_HOME/"
+    deploy_tree "dots/.local/share" "$DATA_HOME"
     log "Deployed: .local/share (icons, konsole theme)"
 fi
 
 # 5c. Deploy Copilot/illogical-impulse config
 # config.json is MERGED (user's paths and settings are preserved),
-# other files are synced normally.
+# other files deployed only if changed.
 if [[ -d "dots/illogical-impulse" ]]; then
     mkdir -p "$CONFIG_HOME/illogical-impulse"
     local_config="$CONFIG_HOME/illogical-impulse/config.json"
@@ -699,7 +796,10 @@ if [[ -d "dots/illogical-impulse" ]]; then
     if [[ -f "$repo_config" ]]; then
         if [[ -f "$local_config" ]]; then
             # Merge: repo provides defaults, user's existing values take priority
-            python3 -c "
+            if cmp -s "$repo_config" "$local_config"; then
+                DEPLOY_SKIPPED=$((DEPLOY_SKIPPED + 1))
+            else
+                python3 -c "
 import json, sys
 with open('$repo_config') as f:
     repo = json.load(f)
@@ -721,14 +821,19 @@ with open('$local_config', 'w') as f:
     f.write('\\n')
 " 2>/dev/null && info "  Merged config.json (user settings preserved)" \
               || { cp "$repo_config" "$local_config"; info "  Deployed config.json (merge failed, used repo version)"; }
+            fi
         else
             cp "$repo_config" "$local_config"
             info "  Deployed config.json (new)"
         fi
     fi
 
-    # Sync non-config.json files
-    rsync -a --exclude='config.json' "dots/illogical-impulse/" "$CONFIG_HOME/illogical-impulse/"
+    # Deploy non-config.json files only if changed
+    while IFS= read -r src_file; do
+        rel="${src_file#dots/illogical-impulse/}"
+        [[ "$rel" == "config.json" ]] && continue
+        deploy_file "$src_file" "$CONFIG_HOME/illogical-impulse/$rel"
+    done < <(find "dots/illogical-impulse" -type f)
     log "Deployed: illogical-impulse config (Copilot integration)"
 fi
 
