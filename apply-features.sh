@@ -627,7 +627,7 @@ deploy_file() {
         return 0
     fi
     DEPLOY_SKIPPED=$((DEPLOY_SKIPPED + 1))
-    return 1
+    return 0
 }
 
 # deploy_tree SRC_DIR DEST_DIR [EXCLUDE...] — recursively deploy only changed files
@@ -663,7 +663,7 @@ deploy_merge() {
     # If src and dest are identical, nothing to do
     if cmp -s "$src" "$dest"; then
         DEPLOY_SKIPPED=$((DEPLOY_SKIPPED + 1))
-        return 1
+        return 0
     fi
 
     # Get the common ancestor (main's version of this file)
