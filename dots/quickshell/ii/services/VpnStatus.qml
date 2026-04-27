@@ -3,6 +3,7 @@ pragma Singleton
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import qs.modules.common
 
 /**
  * VPN status service.
@@ -15,6 +16,7 @@ Singleton {
     property string materialSymbol: "vpn_lock"
     property int symbolFill: connected ? 1 : 0
     property color indicatorColor: connected ? "#a6e3a1" : "#f38ba8"
+    property string toggleScript: Config.options.vpn.toggleScript
 
     // Process to check VPN status
     Process {
@@ -55,8 +57,11 @@ Singleton {
 
     // Function to toggle VPN
     function toggleVpn(): void {
-        const vpnScriptPath = "/home/tslove/Documents/vpn-toggle.sh"
-        Quickshell.execDetached(["bash", vpnScriptPath])
+        if (!toggleScript) {
+            console.warn("VPN toggle script not configured. Set vpn.toggleScript in config.json")
+            return
+        }
+        Quickshell.execDetached(["bash", toggleScript])
         
         // Check status after a short delay
         Qt.callLater(() => {
