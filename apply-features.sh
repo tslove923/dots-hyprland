@@ -688,10 +688,47 @@ if [[ -d "dots/.local/share" ]]; then
     log "Deployed: .local/share (icons, konsole theme)"
 fi
 
-# 5c. Deploy Copilot config
+# 5c. Deploy Copilot/illogical-impulse config
+# config.json is MERGED (user's paths and settings are preserved),
+# other files are synced normally.
 if [[ -d "dots/illogical-impulse" ]]; then
     mkdir -p "$CONFIG_HOME/illogical-impulse"
-    rsync -a "dots/illogical-impulse/" "$CONFIG_HOME/illogical-impulse/"
+    local_config="$CONFIG_HOME/illogical-impulse/config.json"
+    repo_config="dots/illogical-impulse/config.json"
+
+    if [[ -f "$repo_config" ]]; then
+        if [[ -f "$local_config" ]]; then
+            # Merge: repo provides defaults, user's existing values take priority
+            python3 -c "
+import json, sys
+with open('$repo_config') as f:
+    repo = json.load(f)
+with open('$local_config') as f:
+    local = json.load(f)
+
+def deep_merge(base, override):
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = deep_merge(result[k], v)
+        else:
+            result[k] = v
+    return result
+
+merged = deep_merge(repo, local)
+with open('$local_config', 'w') as f:
+    json.dump(merged, f, indent=4)
+    f.write('\\n')
+" 2>/dev/null && info "  Merged config.json (user settings preserved)" \
+              || { cp "$repo_config" "$local_config"; info "  Deployed config.json (merge failed, used repo version)"; }
+        else
+            cp "$repo_config" "$local_config"
+            info "  Deployed config.json (new)"
+        fi
+    fi
+
+    # Sync non-config.json files
+    rsync -a --exclude='config.json' "dots/illogical-impulse/" "$CONFIG_HOME/illogical-impulse/"
     log "Deployed: illogical-impulse config (Copilot integration)"
 fi
 
