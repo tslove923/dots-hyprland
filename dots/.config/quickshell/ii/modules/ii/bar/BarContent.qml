@@ -314,6 +314,24 @@ Item { // Bar content region
                         iconSize: Appearance.font.pixelSize.larger
                         color: rightSidebarButton.colText
                     }
+                    MouseArea {
+                        Layout.fillHeight: true
+                        Layout.leftMargin: indicatorsRowLayout.realSpacing
+                        implicitWidth: vpnIcon.implicitWidth
+                        implicitHeight: vpnIcon.implicitHeight
+                        cursorShape: Qt.PointingHandCursor
+                        hoverEnabled: true
+                        onClicked: VpnStatus.toggleVpn()
+
+                        MaterialSymbol {
+                            id: vpnIcon
+                            anchors.centerIn: parent
+                            text: VpnStatus.materialSymbol
+                            fill: VpnStatus.symbolFill
+                            iconSize: Appearance.font.pixelSize.larger
+                            color: VpnStatus.connected ? VpnStatus.indicatorColor : rightSidebarButton.colText
+                        }
+                    }
                 }
             }
 
