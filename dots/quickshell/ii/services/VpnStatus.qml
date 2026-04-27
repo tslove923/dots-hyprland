@@ -19,7 +19,7 @@ Singleton {
     // Process to check VPN status
     Process {
         id: checkVpnProcess
-        command: ["bash", "-c", "if pgrep -x openvpn > /dev/null || pgrep -x wireguard > /dev/null || ip link show | grep -q tun0; then echo 'connected'; else echo 'disconnected'; fi"]
+        command: ["bash", "-c", "if pgrep -x openvpn > /dev/null || ip link show type wireguard 2>/dev/null | grep -q '^[0-9]' || ip link show tun0 &>/dev/null; then echo 'connected'; else echo 'disconnected'; fi"]
 
         stdout: SplitParser {
             onRead: data => {
