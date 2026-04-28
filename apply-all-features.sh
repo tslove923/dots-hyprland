@@ -20,10 +20,9 @@
 #
 # Usage:
 #   chmod +x apply-all-features.sh
-#   ./apply-all-features.sh [--no-ai-assistant] [--no-backup] [--dry-run]
+#   ./apply-all-features.sh [--no-backup] [--dry-run]
 #
 # Flags:
-#   --no-ai-assistant   Skip AI assistant (wake word) installation
 #   --no-backup         Skip backing up current config
 #   --dry-run           Create integration branch but don't deploy to live config
 #   --keep-branch       Don't delete the integration branch after deploying
@@ -50,7 +49,7 @@ BOLD='\033[1m'
 RST='\033[0m'
 
 # Flags
-INSTALL_AI_ASSISTANT=true
+
 DO_BACKUP=true
 DRY_RUN=false
 KEEP_BRANCH=false
@@ -67,7 +66,6 @@ KEEP_BRANCH=false
 #   7. vpn-indicator (VPN status indicator in bar)
 #
 # Branches intentionally EXCLUDED:
-#   - feature/ai-assistant         → optional, large dependency (wake word models)
 #   - feature/mpris-active-player-fix → superset of mpris-main + homeassistant
 #     (we use mpris-active-player-fix-main for the clean 3-file fix instead)
 #
@@ -90,7 +88,6 @@ FEATURE_BRANCHES=(
 
 for arg in "$@"; do
     case "$arg" in
-        --no-ai-assistant) INSTALL_AI_ASSISTANT=false ;;
         --no-backup)       DO_BACKUP=false ;;
         --dry-run)         DRY_RUN=true ;;
         --keep-branch)     KEEP_BRANCH=true ;;
@@ -201,7 +198,8 @@ for branch in "${FEATURE_BRANCHES[@]}"; do
                     git add "$cfile"
                     info "  Auto-resolved (accept theirs): $cfile"
                     ;;
-                dots/.config/hypr/custom/keybinds.conf)
+                dots/.config/hypr/custom/keybinds.conf|\
+                dots/hypr/custom/keybinds.conf)
                     # Custom keybinds: use feature/custom-configs version (most complete)
                     # It has proxy toggle + services + workspace management
                     if git show "feature/custom-configs:$cfile" &>/dev/null; then
@@ -751,34 +749,9 @@ find "$CONFIG_HOME/hypr/hyprland/scripts/" -name "*.sh" -exec chmod +x {} \; 2>/
 
 log "Scripts made executable"
 
-# ─── Step 8: AI Assistant installation (optional) ────────────────────────────
+# ─── Step 8: Post-install verification ───────────────────────────────────────
 
-step "Step 8: AI Assistant setup"
-
-if $INSTALL_AI_ASSISTANT; then
-    if [[ -f "ai-assistant/install.sh" ]]; then
-        info "Installing AI assistant (wake word detection, event handler)..."
-        info "This requires system packages: python python-pip python-pyaudio portaudio"
-        echo ""
-        read -p "Install AI assistant now? [y/N] " -n 1 -r
-        echo ""
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            bash "ai-assistant/install.sh"
-            log "AI assistant installed"
-        else
-            warn "Skipped AI assistant installation"
-            info "Run later with: cd $REPO_DIR && bash ai-assistant/install.sh"
-        fi
-    else
-        warn "ai-assistant/install.sh not found on this branch"
-    fi
-else
-    info "AI assistant installation skipped (--no-ai-assistant)"
-fi
-
-# ─── Step 9: Post-install verification ───────────────────────────────────────
-
-step "Step 9: Verification"
+step "Step 8: Verification"
 
 MISSING=()
 
@@ -791,7 +764,6 @@ CRITICAL_FILES=(
     "$CONFIG_HOME/quickshell/ii/services/DateTime.qml"
     "$CONFIG_HOME/quickshell/ii/services/Todo.qml"
     "$CONFIG_HOME/quickshell/ii/services/VpnStatus.qml"
-    "$CONFIG_HOME/quickshell/ii/services/AIAssistantState.qml"
     "$CONFIG_HOME/quickshell/ii/modules/common/Config.qml"
     "$CONFIG_HOME/quickshell/ii/modules/ii/bar/BarContent.qml"
     "$CONFIG_HOME/quickshell/ii/modules/ii/sidebarRight/WorldClocks.qml"
@@ -836,9 +808,9 @@ if [[ -f "$BAR_FILE" ]]; then
     fi
 fi
 
-# ─── Step 10: Reload Hyprland ────────────────────────────────────────────────
+# ─── Step 9: Reload Hyprland ────────────────────────────────────────────────
 
-step "Step 10: Reload"
+step "Step 9: Reload"
 
 if command -v hyprctl &>/dev/null && [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
     info "Reloading Hyprland configuration..."
