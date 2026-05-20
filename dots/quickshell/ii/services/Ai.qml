@@ -312,13 +312,73 @@ Singleton {
             "key_get_link": "https://openrouter.ai/settings/keys",
             "key_get_description": Translation.tr("**Pricing**: free. Data use policy varies depending on your OpenRouter account settings.\n\n**Instructions**: Log into OpenRouter account, go to Keys on the topright menu, click Create API Key"),
         }),
-        "github-copilot": aiModelComponent.createObject(this, {
-            "name": "GitHub Copilot",
+        "copilot-claude-sonnet-4.6": aiModelComponent.createObject(this, {
+            "name": "Claude Sonnet 4.6",
             "icon": "copilot-symbolic",
-            "description": Translation.tr("Command-line | GitHub Copilot via gh CLI\nRequires GitHub Copilot subscription and gh CLI with copilot extension installed"),
+            "description": Translation.tr("GitHub Copilot | Anthropic Claude Sonnet 4.6\nFast, intelligent. Requires GitHub Copilot subscription"),
             "homepage": "https://github.com/features/copilot",
             "endpoint": "copilot-cli",
-            "model": "github-copilot",
+            "model": "claude-sonnet-4.6",
+            "requires_key": false,
+            "api_format": "copilot",
+        }),
+        "copilot-claude-opus-4.7": aiModelComponent.createObject(this, {
+            "name": "Claude Opus 4.7",
+            "icon": "copilot-symbolic",
+            "description": Translation.tr("GitHub Copilot | Anthropic Claude Opus 4.7\nMost capable reasoning model. Requires GitHub Copilot subscription"),
+            "homepage": "https://github.com/features/copilot",
+            "endpoint": "copilot-cli",
+            "model": "claude-opus-4.7",
+            "requires_key": false,
+            "api_format": "copilot",
+        }),
+        "copilot-claude-haiku-4.5": aiModelComponent.createObject(this, {
+            "name": "Claude Haiku 4.5",
+            "icon": "copilot-symbolic",
+            "description": Translation.tr("GitHub Copilot | Anthropic Claude Haiku 4.5\nFastest, lightweight. Requires GitHub Copilot subscription"),
+            "homepage": "https://github.com/features/copilot",
+            "endpoint": "copilot-cli",
+            "model": "claude-haiku-4.5",
+            "requires_key": false,
+            "api_format": "copilot",
+        }),
+        "copilot-gpt-5.5": aiModelComponent.createObject(this, {
+            "name": "GPT-5.5",
+            "icon": "copilot-symbolic",
+            "description": Translation.tr("GitHub Copilot | OpenAI GPT-5.5\nLatest flagship model. Requires GitHub Copilot subscription"),
+            "homepage": "https://github.com/features/copilot",
+            "endpoint": "copilot-cli",
+            "model": "gpt-5.5",
+            "requires_key": false,
+            "api_format": "copilot",
+        }),
+        "copilot-gpt-5.4": aiModelComponent.createObject(this, {
+            "name": "GPT-5.4",
+            "icon": "copilot-symbolic",
+            "description": Translation.tr("GitHub Copilot | OpenAI GPT-5.4\nAdvanced reasoning. Requires GitHub Copilot subscription"),
+            "homepage": "https://github.com/features/copilot",
+            "endpoint": "copilot-cli",
+            "model": "gpt-5.4",
+            "requires_key": false,
+            "api_format": "copilot",
+        }),
+        "copilot-gpt-5.4-mini": aiModelComponent.createObject(this, {
+            "name": "GPT-5.4 Mini",
+            "icon": "copilot-symbolic",
+            "description": Translation.tr("GitHub Copilot | OpenAI GPT-5.4 Mini\nFast and efficient. Requires GitHub Copilot subscription"),
+            "homepage": "https://github.com/features/copilot",
+            "endpoint": "copilot-cli",
+            "model": "gpt-5.4-mini",
+            "requires_key": false,
+            "api_format": "copilot",
+        }),
+        "copilot-gpt-4.1": aiModelComponent.createObject(this, {
+            "name": "GPT-4.1",
+            "icon": "copilot-symbolic",
+            "description": Translation.tr("GitHub Copilot | OpenAI GPT-4.1\nReliable workhorse. Requires GitHub Copilot subscription"),
+            "homepage": "https://github.com/features/copilot",
+            "endpoint": "copilot-cli",
+            "model": "gpt-4.1",
             "requires_key": false,
             "api_format": "copilot",
         }),
@@ -681,8 +741,9 @@ Singleton {
             if (model.api_format === "copilot") {
                 // Use our wrapper script for gh copilot
                 const lastMessage = data.lastUserMessage || "";
+                const copilotModel = model.model || "gpt-4.1";
                 const copilotScriptPath = Quickshell.shellPath("scripts/ai/copilot-chat.sh");
-                scriptRequestContent += `"${copilotScriptPath}" "${CF.StringUtils.shellSingleQuoteEscape(lastMessage).replace(/"/g, '\\"')}"\n`;
+                scriptRequestContent += `"${copilotScriptPath}" "${copilotModel}" "${CF.StringUtils.shellSingleQuoteEscape(lastMessage).replace(/"/g, '\\"')}"\n`;
             } else {
                 // Standard curl-based request for API models
                 scriptRequestContent += `curl --no-buffer "${endpoint}"`
