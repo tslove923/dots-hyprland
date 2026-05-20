@@ -1,118 +1,66 @@
-# dots-hyprland - GitHub Copilot Integration
+# dots-hyprland (tslove923 fork)
 
-> **Branch**: `feature/copilot-integration`  
-> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
+> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) · illogical-impulse  
+> **Target Hardware**: Intel Lunar Lake (Arc GPU + NPU)
 
-## 🤖 GitHub Copilot AI Integration
+A personal fork of end-4's dots-hyprland QuickShell configuration with custom features for Intel hardware monitoring, home automation, and daily-driver QoL improvements.
 
-This branch adds GitHub Copilot as an AI model option in the sidebar AI panel.
+All features live on `main` — no branch juggling required.
 
-### Screenshot
+## Features
 
-![Copilot Integration in action](images/copilot-integration.png)
+| Feature | Description | Docs |
+|---------|-------------|------|
+| GPU & NPU Monitoring | Real-time DRM cycle counter + sysfs utilization in the bar | [docs/gpu-npu-monitoring.md](docs/gpu-npu-monitoring.md) |
+| VPN Indicator | Bar icon with click-to-toggle, WireGuard/OpenVPN detection | [docs/vpn-indicator.md](docs/vpn-indicator.md) |
+| GitHub Copilot | AI chat panel via `gh copilot` CLI | [docs/copilot-integration.md](docs/copilot-integration.md) |
+| Home Assistant | HomeKit-style device control panel in the bar | [docs/homeassistant-integration.md](docs/homeassistant-integration.md) |
+| US Date & World Clocks | MM/dd format, work week, timezone sidebar widget | [docs/us-clock-worldclocks.md](docs/us-clock-worldclocks.md) |
+| MPRIS Active Player Fix | Prioritizes currently playing media source | [docs/mpris-active-player-fix.md](docs/mpris-active-player-fix.md) |
+| WiFi Reconnect Fix | Fixes reconnect after password entry | [docs/wifi-reconnect-fix.md](docs/wifi-reconnect-fix.md) |
 
-### Features
+## Installation
 
-- **GitHub Copilot CLI integration**: Uses `gh copilot` command for queries
-- **No API key required**: Uses your existing GitHub Copilot subscription
-- **Custom API strategy**: Implements CopilotCliApiStrategy for gh CLI
-- **Copilot icon**: Changes the AI panel icon to the Copilot symbol
-
-### Files Added/Modified
-
-#### New Files
-- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` - Custom API handler for gh CLI
-
-#### Modified Files
-- `dots/quickshell/ii/services/Ai.qml` - Adds github-copilot model definition (around line 315)
-- `dots/illogical-impulse/config.json` - Changes `topLeftIcon` to "copilot" (line 165)
-
-### Installation
-
-#### Prerequisites
-
-1. GitHub CLI installed:
-   ```bash
-   # Arch/Manjaro
-   sudo pacman -S github-cli
-   
-   # Or via yay
-   yay -S github-cli
-   ```
-
-2. GitHub Copilot extension:
-   ```bash
-   gh extension install github/gh-copilot
-   ```
-
-3. Active GitHub Copilot subscription and authentication:
-   ```bash
-   gh auth login
-   ```
-
-#### Install the Feature
+### Fresh install
 
 ```bash
-# Copy the API strategy
-cp dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml \
-   ~/.config/quickshell/ii/services/ai/
-
-# Copy the updated Ai service
-cp dots/quickshell/ii/services/Ai.qml \
-   ~/.config/quickshell/ii/services/
-
-# Optional: Update the icon
-cp dots/illogical-impulse/config.json \
-   ~/.config/illogical-impulse/
+git clone https://github.com/tslove923/dots-hyprland.git
+cd dots-hyprland
+./setup install
 ```
 
-### Usage
+### Apply custom Hyprland config (keybinds, env, execs)
 
-1. Open the AI sidebar (default: Super+A)
-2. Click the model selector dropdown
-3. Select "GitHub Copilot"
-4. Start chatting!
-
-### How It Works
-
-Unlike other AI models that use HTTP APIs, this integration:
-1. Converts chat messages to a format suitable for `gh copilot`
-2. Executes `gh copilot explain` or `gh copilot suggest` via CLI
-3. Streams the response back to the UI
-4. No API keys needed - uses your gh CLI authentication
-
-### Customization
-
-The implementation handles:
-- Multi-turn conversations
-- System prompts
-- Streaming responses
-- Error handling
-
-To modify behavior, edit `CopilotCliApiStrategy.qml`.
-
-### Troubleshooting
-
-**"gh: command not found"**
-- Install GitHub CLI (see prerequisites)
-
-**"Copilot extension not found"**
 ```bash
-gh extension install github/gh-copilot
+./apply-custom.sh
 ```
 
-**"Failed to log in to github.com"**
+Interactive TUI to select which custom Lua configs to generate for `~/.config/hypr/custom/`.
+
+## Staying Updated
+
 ```bash
-gh auth login
-# Follow the prompts to authenticate
+git remote add upstream https://github.com/end-4/dots-hyprland.git
+git fetch upstream
+git merge upstream/main
 ```
 
-**"The token is invalid"**
-```bash
-gh auth refresh
+## Structure
+
+```
+dots/
+  .config/
+    hypr/           # Hyprland Lua configs (hyprland.lua + custom/)
+    quickshell/ii/  # QuickShell QML modules and services
+    illogical-impulse/  # Runtime config (config.json)
+docs/               # Per-feature documentation
 ```
 
----
+## Credits
 
-**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**Customization by**: tslove923
+- [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) — base configuration
+- [Mission Center](https://gitlab.com/nicola-music-player/mission-center) — DRM monitoring inspiration
+
+## License
+
+Same as the original repository. See [LICENSE](LICENSE) for details.
