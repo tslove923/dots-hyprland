@@ -83,15 +83,15 @@ KB_CODE+=('hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd(HOME .. "/Documents/vpn-to
 
 KB_TAGS+=("move_to_workspace")
 KB_DESCS+=("Super+Shift+[0-9]: Move window to workspace")
-KB_CODE+=('for i = 1, 9 do
-    hl.bind("SUPER + SHIFT + " .. i, hl.dsp.movetoworkspace(i))
-end
-hl.bind("SUPER + SHIFT + 0", hl.dsp.movetoworkspace(10))')
+KB_CODE+=('for i = 1, 10 do
+    hl.bind("SUPER + SHIFT + " .. (i % 10), hl.dsp.window.move({ workspace = i, follow = false }),
+        { description = "Window: Send to workspace " .. i })
+end')
 
 KB_TAGS+=("workspace_nav")
 KB_DESCS+=("Super+Alt+Arrows: Next/prev workspace")
-KB_CODE+=('hl.bind("SUPER + ALT + Right", hl.dsp.workspace("+1"), { description = "Next workspace" })
-hl.bind("SUPER + ALT + Left", hl.dsp.workspace("-1"), { description = "Previous workspace" })')
+KB_CODE+=('hl.bind("SUPER + ALT + Right", hl.dsp.focus({ workspace = "r+1" }), { description = "Workspace: Next" })
+hl.bind("SUPER + ALT + Left", hl.dsp.focus({ workspace = "r-1" }), { description = "Workspace: Previous" })')
 
 # Exec features
 declare -a EXEC_TAGS EXEC_DESCS EXEC_CODE
