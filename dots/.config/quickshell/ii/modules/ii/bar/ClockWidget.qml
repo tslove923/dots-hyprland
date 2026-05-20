@@ -35,6 +35,20 @@ Item {
             color: Appearance.colors.colOnLayer1
             text: DateTime.longDate
         }
+
+        StyledText {
+            visible: root.showDate
+            font.pixelSize: Appearance.font.pixelSize.small
+            color: Appearance.colors.colOnLayer1
+            text: "•"
+        }
+
+        StyledText {
+            visible: root.showDate
+            font.pixelSize: Appearance.font.pixelSize.small
+            color: Appearance.colors.colOnLayer1
+            text: DateTime.workWeek
+        }
     }
 
     MouseArea {
