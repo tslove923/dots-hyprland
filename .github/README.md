@@ -1,163 +1,147 @@
-# dots-hyprland - GPU & NPU Monitoring Feature
+# dots-hyprland — Custom Configs
 
-> **Branch**: `feature/gpu-npu-monitoring`  
+> **Branch**: `feature/homeassistant-integration`  
 > **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-## 🎮 GPU & NPU Usage Monitoring
+Personalized customizations for Hyprland + QuickShell (illogical-impulse).
 
-This branch adds real-time GPU and NPU usage indicators for Intel Lunar Lake SoCs (and other Intel GPUs) to the Quickshell status bar, similar to existing CPU, memory, and swap monitors.
+## 🏠 Home Assistant Integration (Quickshell)
 
-### Screenshot
+This branch adds a HomeKit-style Home Assistant panel to the top bar.
 
-![GPU & NPU Monitoring](images/gpu-npu-monitoring.png)
+### What it does
 
-### Features
+- Adds a `home` icon in the bar.
+- Opens a Home panel with grouped devices:
+  - Cameras (top row)
+  - Security & Access
+  - Lighting
+  - Climate & Appliances
+- Supports:
+  - Toggle actions for lights/switches/locks/covers/climate
+  - Brightness slider for dimmable devices
+  - Camera click opens PiP live stream (via `mpv`), with fallback
 
-- **GPU Monitoring**: Real-time usage tracking via DRM cycle counters
-  - Works with Intel Xe driver (Lunar Lake Arc Graphics)
-  - Supports render, video, and compute engines
-   - Includes live GPU frequency display in popup
-  - Material Symbols icon: `stadia_controller`
-- **NPU Monitoring**: Real compute utilization and status
-   - Uses `npu_busy_time_us` delta method (nputop-style) for granular load %
-   - Shows Active/Suspended status, live frequency, and memory usage
-  - Material Symbols icon: `neurology`
-- **Realtime Updates**: All metrics refresh continuously at `resources.updateInterval`
-   - Bar indicators and popup values update without reopening UI
-   - CPU/GPU/NPU load and frequency values stay in sync with current activity
-- **Multiple UI Components**: Indicators in bar, vertical bar, popup tooltip, and full overlay
-- **Configurable thresholds**: Warning colors at 90% usage (customizable)
-- **Always-show option**: Keep indicators visible even at 0% usage
+### Privacy-safe configuration
 
-### Files Added/Modified
+Personal setup is now expected in an external file outside the repo:
 
-### Files Modified
+- Default path: `~/.config/illogical-impulse/homeassistant.json`
+- Optional override in settings:
+  - `Services -> Home Assistant -> External config path`
 
-| File | Changes |
-|------|---------|
-| `services/ResourceUsage.qml` | Added GPU/NPU monitoring logic with DRM fdinfo parsing |
-| `modules/ii/bar/Resources.qml` | Added GPU/NPU indicators to horizontal bar |
-| `modules/ii/verticalBar/Resources.qml` | Added GPU/NPU indicators to vertical bar |
-| `modules/ii/bar/ResourcesPopup.qml` | Added GPU/NPU info to hover tooltip |
-| `modules/ii/overlay/resources/Resources.qml` | Added GPU/NPU tabs with usage graphs |
-| `modules/common/Config.qml` | Added configuration options (thresholds, always-show) |
+This keeps personal entity names and tokens out of git-tracked config.
 
-### Dependencies
-
-**Arch Linux**:
-```bash
-sudo pacman -S intel-gpu-tools  # Optional, for intel_gpu_top fallback
-```
-
-**Other distributions**:
-- Fedora/RHEL: `sudo dnf install intel-gpu-tools`
-- Ubuntu/Debian: `sudo apt install intel-gpu-tools`
-- Gentoo: `emerge x11-apps/intel-gpu-tools`
-
-### Installation
-
-**Method 1: From this fork**
-```bash
-# Clone this feature branch
-git clone -b feature/gpu-npu-monitoring https://github.com/tslove923/dots-hyprland.git
-cd dots-hyprland
-
-# Run the installer
-./setup
-```
-
-**Method 2: Manual installation**
-```bash
-# Copy modified files to your config
-cp dots/.config/quickshell/ii/services/ResourceUsage.qml \
-   ~/.config/quickshell/ii/services/
-
-cp dots/.config/quickshell/ii/modules/ii/bar/Resources.qml \
-   ~/.config/quickshell/ii/modules/ii/bar/
-
-cp dots/.config/quickshell/ii/modules/ii/verticalBar/Resources.qml \
-   ~/.config/quickshell/ii/modules/ii/verticalBar/
-
-cp dots/.config/quickshell/ii/modules/ii/bar/ResourcesPopup.qml \
-   ~/.config/quickshell/ii/modules/ii/bar/
-
-cp dots/.config/quickshell/ii/modules/ii/overlay/resources/Resources.qml \
-   ~/.config/quickshell/ii/modules/ii/overlay/resources/
-
-cp dots/.config/quickshell/ii/modules/common/Config.qml \
-   ~/.config/quickshell/ii/modules/common/
-
-# Reload Quickshell
-qs -r
-```
-
-### Configuration
-
-Edit `~/.config/illogical-impulse/config.json`:
+### External config format
 
 ```json
 {
-  "alwaysShowGpu": true,
-  "gpuWarningThreshold": 90,
-  "alwaysShowNpu": true,
-  "npuWarningThreshold": 90
+  "url": "https://your-home.ui.nabu.casa",
+  "token": "YOUR_LONG_LIVED_ACCESS_TOKEN",
+  "fetchInterval": 15,
+
+  "cameras": ["camera.front_door"],
+  "lights": ["light.living_room"],
+  "locks": ["lock.front_door"],
+  "covers": ["cover.garage"],
+  "climate": ["climate.main"],
+  "appliances": ["switch.coffee_maker"]
 }
 ```
 
-### How It Works
+`fetchInterval` is in minutes.
 
-**GPU Monitoring**:
-1. Reads DRM file descriptors from `/proc/*/fdinfo/*`
-2. Parses cycle counters: `drm-cycles-rcs` (render), `drm-cycles-vcs` (video), `drm-cycles-ccs` (compute)
-3. Calculates usage: `(active_cycles_delta / total_cycles_delta) * 100`
-4. Averages across all active engines
-5. Works with Intel Xe driver (Lunar Lake) and i915
+### Notes
 
-**NPU Monitoring**:
-1. Reads `npu_busy_time_us` and computes utilization from deltas over time
-2. Reads runtime power state (`active`/`suspended`) from sysfs
-3. Reads current NPU frequency and memory usage for popup detail rows
-4. Produces realtime % load instead of binary active/suspended-only output
+- If `url` omits scheme, `https://` is auto-added.
+- If `mpv` is installed, camera tiles open an always-on-top PiP window.
+- If external config is missing, shell settings values are used as fallback.
 
-### Troubleshooting
+## ⌨️ Custom Keybindings
 
-**GPU shows 0% constantly**:
-- Check kernel driver: `lspci -k | grep -A 3 VGA`
-- Verify fdinfo exists: `ls /proc/*/fdinfo/* | head`
-- Test manually: `cat /proc/$(pgrep -n qs)/fdinfo/* | grep drm-cycles`
+**File**: `dots/.config/hypr/custom/keybinds.conf`
 
-**NPU not detected**:
-- Check device exists: `ls /sys/class/accel/`
-- Verify NPU driver loaded: `lsmod | grep intel_vpu`
-- Check dmesg: `dmesg | grep -i npu`
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Super + Z` | Voice typing | Triggers voice-to-text via IPC |
+| `Super + Alt + D` | Docker toggle | Starts/stops Docker daemon (polkit GUI auth) |
+| `Super + Alt + B` | Bluetui | Opens Bluetooth TUI manager |
+| `Super + Alt + V` | VPN toggle | Toggles VPN connection (polkit GUI auth) |
+| `Super + Shift + [0-9]` | Move to Workspace | Moves active window to workspace 1-9 |
+| `Super + Alt + →/←` | Next/Prev Workspace | Switches workspace on current monitor |
 
-**Permission errors**:
-- `/proc/*/fdinfo/` requires process ownership (Quickshell reads its own)
-- `/sys/class/accel/` should be world-readable
+## 🕐 Date Format (US-style)
 
-### Development Workflow
+**File**: `dots/.config/quickshell/ii/modules/common/Config.qml`
 
-```bash
-# Make changes in dev repo
-cd ~/projects/dots-hyprland-dev
-# Edit files...
+Changes date display from `dd/MM` (European) to `MM/dd` (US):
 
-# Sync to live config
-bash scripts/sync_and_test.sh gpu-npu
+| Format | Default | Custom |
+|--------|---------|--------|
+| Top bar date | `ddd, dd/MM` | `ddd, MM/dd` |
+| Short date | `dd/MM` | `MM/dd` |
+| Date with year | `dd/MM/yyyy` | `MM/dd/yyyy` |
 
-# Test changes
-qs -r
+> **Note**: QuickShell persists user settings to `~/.config/illogical-impulse/config.json`.  
+> Changes to `Config.qml` only set defaults — the JSON file overrides them.  
+> To apply: update both the QML file and the `time` section in `config.json`.
+
+## � Polkit (GUI Auth with Fingerprint)
+
+The Docker toggle uses `pkexec` instead of `sudo`, showing a GUI auth dialog that supports fingerprint + password.
+
+### Fingerprint support
+
+Put `pam_fprintd.so` before `pam_unix.so` in `/etc/pam.d/polkit-1`:
+
+```
+#%PAM-1.0
+auth            sufficient      pam_fprintd.so
+auth            sufficient      pam_unix.so try_first_pass likeauth nullok
+auth            include         system-auth
+account         include         system-auth
+session         include         system-auth
 ```
 
-### Credits
+### Disable auth chime
 
-- **Mission Center**: Inspired the DRM cycle counter monitoring approach
-- **end-4/dots-hyprland**: Base configuration
-- **Intel**: Xe driver and DRM subsystem documentation
+Create `~/.local/share/knotifications6/polkit-kde-authentication-agent-1.notifyrc`:
 
-### License
+```ini
+[Event/authenticate]
+Action=
+```
 
-Same as base dots-hyprland repository (see [LICENSE](../LICENSE))
+Then restart the agent: `killall polkit-kde-authentication-agent-1 && /usr/lib/polkit-kde-authentication-agent-1 &`
+
+## �📦 Installation
+
+```bash
+# Sync keybinds
+cp dots/.config/hypr/custom/keybinds.conf ~/.config/hypr/custom/
+cp dots/.config/hypr/custom/scripts/*.sh ~/.config/hypr/custom/scripts/
+
+# Sync QuickShell config
+rsync -av dots/.config/quickshell/ii/modules/common/Config.qml \
+  ~/.config/quickshell/ii/modules/common/Config.qml
+
+# Update persisted QuickShell settings
+python3 -c "
+import json
+p = '$HOME/.config/illogical-impulse/config.json'
+with open(p) as f: d = json.load(f)
+d['time']['dateFormat'] = 'ddd, MM/dd'
+d['time']['shortDateFormat'] = 'MM/dd'
+d['time']['dateWithYearFormat'] = 'MM/dd/yyyy'
+with open(p, 'w') as f: json.dump(d, f, indent=2)
+"
+```
+
+## Dependencies
+
+- `kitty` — Terminal emulator
+- `bluetui` — Bluetooth TUI (optional)
+- VPN toggle script at `~/Documents/vpn-toggle.sh` (optional)
 
 ---
 

@@ -274,6 +274,24 @@ Singleton {
                     property bool useUSCS: false // Instead of metric (SI) units
                     property int fetchInterval: 10 // minutes
                 }
+                property JsonObject homeAssistant: JsonObject {
+                    property bool enable: false
+                    property bool showDeviceCounts: true
+                    property string url: ""
+                    property string token: ""
+                    property int fetchInterval: 15 // minutes
+                    // Optional external JSON path to keep personal HA setup out of git-tracked config
+                    property string configPath: ""
+
+                    // HomeKit-inspired categories for top bar Home popup.
+                    // Keep these empty in repo; put personal entities in external configPath.
+                    property list<string> cameras: []
+                    property list<string> lights: []
+                    property list<string> locks: []
+                    property list<string> covers: []
+                    property list<string> climate: []
+                    property list<string> appliances: []
+                }
                 property JsonObject indicators: JsonObject {
                     property JsonObject notifications: JsonObject {
                         property bool showUnreadCount: false
@@ -564,9 +582,9 @@ Singleton {
             property JsonObject time: JsonObject {
                 // https://doc.qt.io/qt-6/qtime.html#toString
                 property string format: "hh:mm"
-                property string shortDateFormat: "dd/MM"
-                property string dateWithYearFormat: "dd/MM/yyyy"
-                property string dateFormat: "ddd, dd/MM"
+                property string shortDateFormat: "MM/dd"
+                property string dateWithYearFormat: "MM/dd/yyyy"
+                property string dateFormat: "ddd, MM/dd"
                 property JsonObject pomodoro: JsonObject {
                     property int breakTime: 300
                     property int cyclesBeforeLongBreak: 4

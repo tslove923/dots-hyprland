@@ -1,85 +1,95 @@
-# dots-hyprland - VPN Indicator Feature
+# dots-hyprland — Custom Configs
 
-> **Branch**: `feature/vpn-indicator`  
+> **Branch**: `feature/custom-configs`  
 > **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-## 🔒 VPN Status Indicator
+Personalized customizations for Hyprland + QuickShell (illogical-impulse).
 
-This branch adds a VPN connection indicator to the Quickshell status bar.
+## ⌨️ Custom Keybindings
 
-### Screenshot
+**File**: `dots/.config/hypr/custom/keybinds.conf`
 
-![VPN Indicator in action](.github/images/vpn-indicator.png)
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Super + Z` | Voice typing | Triggers voice-to-text via IPC |
+| `Super + Alt + D` | Docker toggle | Starts/stops Docker daemon (polkit GUI auth) |
+| `Super + Alt + B` | Bluetui | Opens Bluetooth TUI manager |
+| `Super + Alt + V` | VPN toggle | Toggles VPN connection (polkit GUI auth) |
+| `Super + Shift + [0-9]` | Move to Workspace | Moves active window to workspace 1-9 |
+| `Super + Alt + →/←` | Next/Prev Workspace | Switches workspace on current monitor |
 
-### Features
+## 🕐 Date Format (US-style)
 
-- **Real-time monitoring**: Checks VPN status every 5 seconds
-- **Visual indicator**: Shows vpn_lock icon in the system tray
-  - 🟢 Green when connected
-  - ⚫ Grey when disconnected
-- **Click to toggle**: Single click to run VPN toggle script
-- **Multiple VPN support**: Detects OpenVPN, WireGuard, or tun0 interface
+**File**: `dots/.config/quickshell/ii/modules/common/Config.qml`
 
-### Files Added/Modified
+Changes date display from `dd/MM` (European) to `MM/dd` (US):
 
-#### New Files
-- `dots/quickshell/ii/services/VpnStatus.qml` - VPN status monitoring service
+| Format | Default | Custom |
+|--------|---------|--------|
+| Top bar date | `ddd, dd/MM` | `ddd, MM/dd` |
+| Short date | `dd/MM` | `MM/dd` |
+| Date with year | `dd/MM/yyyy` | `MM/dd/yyyy` |
 
-#### Modified Files
-- `dots/quickshell/ii/modules/ii/bar/BarContent.qml` - Bar integration (around line 306)
+> **Note**: QuickShell persists user settings to `~/.config/illogical-impulse/config.json`.  
+> Changes to `Config.qml` only set defaults — the JSON file overrides them.  
+> To apply: update both the QML file and the `time` section in `config.json`.
 
-### Installation
+## � Polkit (GUI Auth with Fingerprint)
 
-If you want to use just this feature:
+The Docker toggle uses `pkexec` instead of `sudo`, showing a GUI auth dialog that supports fingerprint + password.
 
-```bash
-# Copy the VPN service
-cp dots/quickshell/ii/services/VpnStatus.qml ~/.config/quickshell/ii/services/
+### Fingerprint support
 
-# Add to your BarContent.qml (around line 306, near other indicators):
-MouseArea {
-    Layout.fillHeight: true
-    Layout.rightMargin: indicatorsRowLayout.realSpacing
-    implicitWidth: vpnIcon.implicitWidth
-    implicitHeight: vpnIcon.implicitHeight
-    cursorShape: Qt.PointingHandCursor
-    hoverEnabled: true
-    onClicked: VpnStatus.toggleVpn()
-    
-    MaterialSymbol {
-        id: vpnIcon
-        anchors.centerIn: parent
-        text: VpnStatus.materialSymbol
-        fill: VpnStatus.symbolFill
-        iconSize: Appearance.font.pixelSize.larger
-        color: VpnStatus.connected ? VpnStatus.indicatorColor : rightSidebarButton.colText
-    }
-}
+Put `pam_fprintd.so` before `pam_unix.so` in `/etc/pam.d/polkit-1`:
 
-# Also add the import at the top of BarContent.qml:
-import qs.services.vpnstatus
+```
+#%PAM-1.0
+auth            sufficient      pam_fprintd.so
+auth            sufficient      pam_unix.so try_first_pass likeauth nullok
+auth            include         system-auth
+account         include         system-auth
+session         include         system-auth
 ```
 
-### Requirements
+### Disable auth chime
 
-- VPN toggle script at `~/Documents/vpn-toggle.sh` (or modify the path in VpnStatus.qml)
-- One of: OpenVPN, WireGuard, or any VPN that creates a tun0 interface
+Create `~/.local/share/knotifications6/polkit-kde-authentication-agent-1.notifyrc`:
 
-### How It Works
+```ini
+[Event/authenticate]
+Action=
+```
 
-The `VpnStatus.qml` service:
-1. Runs a bash command to check for VPN processes and interfaces
-2. Updates the `connected` property based on findings
-3. Provides a `toggleVpn()` function to execute your toggle script
-4. Refreshes status after toggle with a 2-second delay
+Then restart the agent: `killall polkit-kde-authentication-agent-1 && /usr/lib/polkit-kde-authentication-agent-1 &`
 
-### Customization
+## �📦 Installation
 
-Edit `dots/quickshell/ii/services/VpnStatus.qml` to customize:
-- Check interval (default: 5000ms = 5 seconds)
-- VPN detection command (line 22)
-- Toggle script path (line 58)
-- Colors (line 17: `indicatorColor`)
+```bash
+# Sync keybinds
+cp dots/.config/hypr/custom/keybinds.conf ~/.config/hypr/custom/
+cp dots/.config/hypr/custom/scripts/*.sh ~/.config/hypr/custom/scripts/
+
+# Sync QuickShell config
+rsync -av dots/.config/quickshell/ii/modules/common/Config.qml \
+  ~/.config/quickshell/ii/modules/common/Config.qml
+
+# Update persisted QuickShell settings
+python3 -c "
+import json
+p = '$HOME/.config/illogical-impulse/config.json'
+with open(p) as f: d = json.load(f)
+d['time']['dateFormat'] = 'ddd, MM/dd'
+d['time']['shortDateFormat'] = 'MM/dd'
+d['time']['dateWithYearFormat'] = 'MM/dd/yyyy'
+with open(p, 'w') as f: json.dump(d, f, indent=2)
+"
+```
+
+## Dependencies
+
+- `kitty` — Terminal emulator
+- `bluetui` — Bluetooth TUI (optional)
+- VPN toggle script at `~/Documents/vpn-toggle.sh` (optional)
 
 ---
 

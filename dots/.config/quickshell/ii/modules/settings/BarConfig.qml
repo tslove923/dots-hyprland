@@ -252,6 +252,28 @@ ContentPage {
     }
 
     ContentSection {
+        icon: "home"
+        title: Translation.tr("Home")
+        ConfigSwitch {
+            buttonIcon: "check"
+            text: Translation.tr("Enable Home Assistant icon")
+            checked: Config.options.bar.homeAssistant.enable
+            onCheckedChanged: {
+                Config.options.bar.homeAssistant.enable = checked;
+            }
+        }
+
+        ConfigSwitch {
+            buttonIcon: "counter_1"
+            text: Translation.tr("Show online/total indicator")
+            checked: Config.options.bar.homeAssistant.showDeviceCounts
+            onCheckedChanged: {
+                Config.options.bar.homeAssistant.showDeviceCounts = checked;
+            }
+        }
+    }
+
+    ContentSection {
         icon: "workspaces"
         title: Translation.tr("Workspaces")
 
