@@ -2,7 +2,7 @@
 # apply-custom.sh — Interactive TUI to generate custom Hyprland Lua configs
 # Generates: ~/.config/hypr/custom/{keybinds,env,execs}.lua
 # Patches:   ~/.config/illogical-impulse/config.json
-set -euo pipefail
+set -eo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HYPR_CUSTOM="$HOME/.config/hypr/custom"
@@ -165,8 +165,10 @@ QML_TAGS+=("wifi_fix")
 QML_DESCS+=("WiFi reconnect after password fix")
 QML_FILES+=("services/Network.qml")
 
-# Copilot has an extra file in a different source path
+# Copilot has extra files from different source paths
 QML_COPILOT_EXTRA="dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml"
+QML_COPILOT_AI_OVERLAY="dots/quickshell/ii/services/Ai.qml"
+QML_COPILOT_ICON="dots/.config/quickshell/ii/assets/icons/copilot-symbolic.svg"
 
 # Config.qml is shared by multiple features — always deploy if any QML feature is selected
 QML_SHARED="modules/common/Config.qml"
@@ -182,6 +184,13 @@ show_checklist() {
 
 run_tui() {
     local selected
+
+    # Initialize selection arrays
+    SELECTED_KB=()
+    SELECTED_EXEC=()
+    SELECTED_ENV=()
+    SELECTED_CFG=()
+    SELECTED_QML=()
 
     # ── Keybinds ──
     local kb_args=()
@@ -388,12 +397,25 @@ deploy_qml() {
                     fi
                 done
 
-                # Handle Copilot extra file
-                if [[ "$tag" == "copilot_ai" && -f "$SCRIPT_DIR/$QML_COPILOT_EXTRA" ]]; then
-                    local copilot_dst="$qs_live/services/ai/CopilotCliApiStrategy.qml"
-                    mkdir -p "$(dirname "$copilot_dst")"
-                    cp "$SCRIPT_DIR/$QML_COPILOT_EXTRA" "$copilot_dst"
-                    ((count++))
+                # Handle Copilot extra files
+                if [[ "$tag" == "copilot_ai" ]]; then
+                    # Use overlay Ai.qml (has Copilot model) instead of base
+                    if [[ -f "$SCRIPT_DIR/$QML_COPILOT_AI_OVERLAY" ]]; then
+                        cp "$SCRIPT_DIR/$QML_COPILOT_AI_OVERLAY" "$qs_live/services/Ai.qml"
+                        ((count++))
+                    fi
+                    # Deploy CopilotCliApiStrategy
+                    if [[ -f "$SCRIPT_DIR/$QML_COPILOT_EXTRA" ]]; then
+                        mkdir -p "$qs_live/services/ai"
+                        cp "$SCRIPT_DIR/$QML_COPILOT_EXTRA" "$qs_live/services/ai/CopilotCliApiStrategy.qml"
+                        ((count++))
+                    fi
+                    # Deploy icon
+                    if [[ -f "$SCRIPT_DIR/$QML_COPILOT_ICON" ]]; then
+                        mkdir -p "$qs_live/assets/icons"
+                        cp "$SCRIPT_DIR/$QML_COPILOT_ICON" "$qs_live/assets/icons/"
+                        ((count++))
+                    fi
                 fi
             fi
         done
