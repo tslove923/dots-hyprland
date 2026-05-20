@@ -9,6 +9,7 @@ HYPR_CUSTOM="$HOME/.config/hypr/custom"
 QS_CONFIG="$HOME/.config/illogical-impulse/config.json"
 SCRIPTS_SRC="$SCRIPT_DIR/dots/.config/hypr/custom/scripts"
 SCRIPTS_DST="$HYPR_CUSTOM/scripts"
+BACKUP_DIR="$HOME/.config/hypr/custom/.backups"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,7 +43,8 @@ with open(path, 'w') as f:
 backup_file() {
     local f="$1"
     if [[ -f "$f" ]]; then
-        cp "$f" "${f}.bak.$(date +%s)"
+        mkdir -p "$BACKUP_DIR"
+        cp "$f" "$BACKUP_DIR/$(basename "$f").$(date +%s)"
     fi
 }
 
