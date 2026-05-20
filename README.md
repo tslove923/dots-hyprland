@@ -1,85 +1,115 @@
-# dots-hyprland — US Date Format & World Clocks
+# dots-hyprland - GitHub Copilot Integration
 
-> **Branch**: `feature/us-clock-view-worldclocks`  
+> **Branch**: `feature/copilot-integration`  
 > **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-QuickShell customizations for US-style date formatting, work week display in the top bar, and a world clocks widget in the sidebar.
+## 🤖 GitHub Copilot AI Integration
 
-## 🕐 Top Bar — US Date Format & Work Week
+This branch adds GitHub Copilot as an AI model option in the sidebar AI panel.
 
-![Top bar with US date format and work week](/.github/assets/topbar-us-date.png)
+### Screenshot
 
-Changes the top bar clock to show **US date format** (`MM/dd`) and the **ISO work week** number.
+![Copilot Integration in action](.github/images/copilot-integration.png)
 
-### Date format changes
+### Features
 
-**File**: `dots/.config/quickshell/ii/modules/common/Config.qml`
+- **GitHub Copilot CLI integration**: Uses `gh copilot` command for queries
+- **No API key required**: Uses your existing GitHub Copilot subscription
+- **Custom API strategy**: Implements CopilotCliApiStrategy for gh CLI
+- **Copilot icon**: Changes the AI panel icon to the Copilot symbol
 
-| Format | Default | Custom |
-|--------|---------|--------|
-| Top bar date | `ddd, dd/MM` | `ddd, MM/dd` |
-| Short date | `dd/MM` | `MM/dd` |
-| Date with year | `dd/MM/yyyy` | `MM/dd/yyyy` |
+### Files Added/Modified
 
-### Work week display
+#### New Files
+- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` - Custom API handler for gh CLI
 
-**Files**: `ClockWidget.qml`, `DateTime.qml`
+#### Modified Files
+- `dots/quickshell/ii/services/Ai.qml` - Adds github-copilot model definition (around line 315)
+- `dots/illogical-impulse/config.json` - Changes `topLeftIcon` to "copilot" (line 165)
 
-Adds an ISO week number (e.g. `W10`) next to the date in the top bar. The `DateTime` service exposes a `workWeek` property computed from `Qt.formatDateTime`.
+### Installation
 
-> **Note**: QuickShell persists user settings to `~/.config/illogical-impulse/config.json`.  
-> Changes to `Config.qml` only set defaults — the JSON file overrides them.  
-> To apply: update both the QML file and the `time` section in `config.json`.
+#### Prerequisites
 
-## 🌍 Sidebar — World Clocks
+1. GitHub CLI installed:
+   ```bash
+   # Arch/Manjaro
+   sudo pacman -S github-cli
+   
+   # Or via yay
+   yay -S github-cli
+   ```
 
-![World clocks widget in sidebar](/.github/assets/world-clocks.png)
+2. GitHub Copilot extension:
+   ```bash
+   gh extension install github/gh-copilot
+   ```
 
-A new **World Clocks** panel in the right sidebar showing multiple time zones, sorted by UTC offset.
+3. Active GitHub Copilot subscription and authentication:
+   ```bash
+   gh auth login
+   ```
 
-**Files**:
-- `WorldClocks.qml` — New widget
-- `SidebarRightContent.qml` — Wires widget into sidebar
-
-### Configured time zones
-
-| City | Time Zone |
-|------|-----------|
-| London, UK | Europe/London |
-| Gdansk, PL | Europe/Warsaw |
-| Bangalore, IN | Asia/Kolkata |
-| Penang, MY | Asia/Kuala_Lumpur |
-| Shanghai, CN | Asia/Shanghai |
-
-Clocks display the city label, current time, UTC offset, and day difference relative to local time. Labels use a consistent `City, XX` format.
-
-## 📦 Installation
+#### Install the Feature
 
 ```bash
-# Sync QuickShell modules
-for f in \
-  modules/common/Config.qml \
-  modules/ii/bar/ClockWidget.qml \
-  modules/ii/sidebarRight/SidebarRightContent.qml \
-  modules/ii/sidebarRight/WorldClocks.qml \
-  services/DateTime.qml; do
-  cp "dots/.config/quickshell/ii/$f" \
-     "$HOME/.config/quickshell/ii/$f"
-done
+# Copy the API strategy
+cp dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml \
+   ~/.config/quickshell/ii/services/ai/
 
-# Update persisted QuickShell settings
-python3 -c "
-import json, pathlib
-p = pathlib.Path.home() / '.config/illogical-impulse/config.json'
-d = json.loads(p.read_text())
-d['time']['dateFormat'] = 'ddd, MM/dd'
-d['time']['shortDateFormat'] = 'MM/dd'
-d['time']['dateWithYearFormat'] = 'MM/dd/yyyy'
-p.write_text(json.dumps(d, indent=2))
-"
+# Copy the updated Ai service
+cp dots/quickshell/ii/services/Ai.qml \
+   ~/.config/quickshell/ii/services/
 
-# Restart QuickShell to pick up changes
-qs -c ii &
+# Optional: Update the icon
+cp dots/illogical-impulse/config.json \
+   ~/.config/illogical-impulse/
+```
+
+### Usage
+
+1. Open the AI sidebar (default: Super+A)
+2. Click the model selector dropdown
+3. Select "GitHub Copilot"
+4. Start chatting!
+
+### How It Works
+
+Unlike other AI models that use HTTP APIs, this integration:
+1. Converts chat messages to a format suitable for `gh copilot`
+2. Executes `gh copilot explain` or `gh copilot suggest` via CLI
+3. Streams the response back to the UI
+4. No API keys needed - uses your gh CLI authentication
+
+### Customization
+
+The implementation handles:
+- Multi-turn conversations
+- System prompts
+- Streaming responses
+- Error handling
+
+To modify behavior, edit `CopilotCliApiStrategy.qml`.
+
+### Troubleshooting
+
+**"gh: command not found"**
+- Install GitHub CLI (see prerequisites)
+
+**"Copilot extension not found"**
+```bash
+gh extension install github/gh-copilot
+```
+
+**"Failed to log in to github.com"**
+```bash
+gh auth login
+# Follow the prompts to authenticate
+```
+
+**"The token is invalid"**
+```bash
+gh auth refresh
 ```
 
 ---

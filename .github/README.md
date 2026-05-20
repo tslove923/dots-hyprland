@@ -1,100 +1,118 @@
-# dots-hyprland - Custom Features Fork
+# dots-hyprland - GitHub Copilot Integration
 
-> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-> **Customizations by**: tslove923
+> **Branch**: `feature/copilot-integration`  
+> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-This is a fork of end-4's excellent dots-hyprland configuration with custom features and enhancements.
+## 🤖 GitHub Copilot AI Integration
 
-## 🌟 Custom Features
+This branch adds GitHub Copilot as an AI model option in the sidebar AI panel.
 
-Each feature is developed in its own branch with detailed documentation:
+### Screenshot
 
-### 🔒 [VPN Indicator](https://github.com/tslove923/dots-hyprland/tree/feature/vpn-indicator)
-Adds a real-time VPN status indicator to the Quickshell bar.
+![Copilot Integration in action](images/copilot-integration.png)
 
-- Green icon when connected, grey when disconnected
-- Click to toggle VPN connection
-- Supports OpenVPN, WireGuard, and tun0 interfaces
+### Features
 
-**Branch**: [`feature/vpn-indicator`](https://github.com/tslove923/dots-hyprland/tree/feature/vpn-indicator)
+- **GitHub Copilot CLI integration**: Uses `gh copilot` command for queries
+- **No API key required**: Uses your existing GitHub Copilot subscription
+- **Custom API strategy**: Implements CopilotCliApiStrategy for gh CLI
+- **Copilot icon**: Changes the AI panel icon to the Copilot symbol
 
----
+### Files Added/Modified
 
-### 🤖 [GitHub Copilot Integration](https://github.com/tslove923/dots-hyprland/tree/feature/copilot-integration)
-Integrates GitHub Copilot as an AI model in the sidebar panel.
+#### New Files
+- `dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml` - Custom API handler for gh CLI
 
-- Uses gh CLI for authentication
-- No API key required (uses your Copilot subscription)
-- Custom icon and seamless integration
+#### Modified Files
+- `dots/quickshell/ii/services/Ai.qml` - Adds github-copilot model definition (around line 315)
+- `dots/illogical-impulse/config.json` - Changes `topLeftIcon` to "copilot" (line 165)
 
-**Branch**: [`feature/copilot-integration`](https://github.com/tslove923/dots-hyprland/tree/feature/copilot-integration)
+### Installation
 
----
+#### Prerequisites
 
-### ⌨️ [Custom Keybindings](https://github.com/tslove923/dots-hyprland/tree/feature/custom-keybinds)
-Personalized Hyprland keyboard shortcuts.
+1. GitHub CLI installed:
+   ```bash
+   # Arch/Manjaro
+   sudo pacman -S github-cli
+   
+   # Or via yay
+   yay -S github-cli
+   ```
 
-- VPN toggle shortcut
-- Workspace management enhancements
-- Quick access to common tools
+2. GitHub Copilot extension:
+   ```bash
+   gh extension install github/gh-copilot
+   ```
 
-**Branch**: [`feature/custom-keybinds`](https://github.com/tslove923/dots-hyprland/tree/feature/custom-keybinds)
+3. Active GitHub Copilot subscription and authentication:
+   ```bash
+   gh auth login
+   ```
 
----
-
-## 📦 Installation
-
-### Use All Features
-```bash
-# Clone this repository
-git clone https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-
-# Merge all features
-git checkout -b all-features
-git merge feature/vpn-indicator
-git merge feature/copilot-integration
-git merge feature/custom-keybinds
-
-# Then follow end-4's installation instructions
-```
-
-### Use Individual Features
-Each feature branch has its own installation instructions. Visit the branch README for details.
+#### Install the Feature
 
 ```bash
-# Example: Install just VPN indicator
-git clone -b feature/vpn-indicator https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-# Follow instructions in README.md
+# Copy the API strategy
+cp dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml \
+   ~/.config/quickshell/ii/services/ai/
+
+# Copy the updated Ai service
+cp dots/quickshell/ii/services/Ai.qml \
+   ~/.config/quickshell/ii/services/
+
+# Optional: Update the icon
+cp dots/illogical-impulse/config.json \
+   ~/.config/illogical-impulse/
 ```
 
-## 🔄 Staying Updated
+### Usage
 
-This fork tracks upstream changes from end-4's original repository:
+1. Open the AI sidebar (default: Super+A)
+2. Click the model selector dropdown
+3. Select "GitHub Copilot"
+4. Start chatting!
 
+### How It Works
+
+Unlike other AI models that use HTTP APIs, this integration:
+1. Converts chat messages to a format suitable for `gh copilot`
+2. Executes `gh copilot explain` or `gh copilot suggest` via CLI
+3. Streams the response back to the UI
+4. No API keys needed - uses your gh CLI authentication
+
+### Customization
+
+The implementation handles:
+- Multi-turn conversations
+- System prompts
+- Streaming responses
+- Error handling
+
+To modify behavior, edit `CopilotCliApiStrategy.qml`.
+
+### Troubleshooting
+
+**"gh: command not found"**
+- Install GitHub CLI (see prerequisites)
+
+**"Copilot extension not found"**
 ```bash
-git remote add upstream https://github.com/end-4/dots-hyprland
-git fetch upstream
-git merge upstream/main
+gh extension install github/gh-copilot
 ```
 
-## 📚 Original Repository
+**"Failed to log in to github.com"**
+```bash
+gh auth login
+# Follow the prompts to authenticate
+```
 
-This is based on [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) - an amazing Hyprland configuration. All credit for the base configuration goes to end-4 and contributors.
-
-## 🤝 Contributing
-
-Feel free to:
-- Use these features in your own setup
-- Suggest improvements via issues
-- Submit pull requests for enhancements
-
-## 📝 License
-
-Same as the original repository. See [LICENSE](LICENSE) for details.
+**"The token is invalid"**
+```bash
+gh auth refresh
+```
 
 ---
 
-**Upstream**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**This Fork**: Custom features by tslove923
+**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
+**Customization by**: tslove923
