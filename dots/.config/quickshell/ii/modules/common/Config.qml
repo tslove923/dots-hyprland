@@ -543,6 +543,10 @@ Singleton {
                 }
             }
 
+            property JsonObject vpn: JsonObject {
+                property string toggleScript: "" // Path to VPN toggle script (e.g. ~/Documents/vpn-toggle.sh)
+            }
+
             property JsonObject screenRecord: JsonObject {
                 property string savePath: Directories.videos.replace("file://","") // strip "file://"
             }

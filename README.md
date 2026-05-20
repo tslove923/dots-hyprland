@@ -1,151 +1,87 @@
-# dots-hyprland - Custom Features Fork
+# dots-hyprland - VPN Indicator Feature
 
-> **Fork of**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) (illogical-impulse)  
-> **Customizations by**: tslove923  
-> **Target Hardware**: Intel Lunar Lake (Arc GPU + NPU)
+> **Branch**: `feature/vpn-indicator`  
+> **Based on**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)
 
-A personal fork of end-4's excellent dots-hyprland Quickshell configuration with custom features and hardware-specific enhancements. Each feature is developed in its own branch and can be used independently.
+## 🔒 VPN Status Indicator
 
-## 🌟 Custom Features
+This branch adds a VPN connection indicator to the Quickshell status bar.
 
-### 📊 [GPU & NPU Monitoring](../../tree/feature/gpu-npu-monitoring)
-Real-time GPU and NPU usage indicators in the Quickshell bar, tailored for Intel Lunar Lake.
+### Screenshot
 
-- **GPU**: DRM cycle counter monitoring (Render/Video/Compute engines) with frequency metrics
-- **NPU**: True compute utilization via `npu_busy_time_us` sysfs interface
-- Material Symbol icons: `stadia_controller` (GPU), `neurology` (NPU)
-- Per-engine popup details with CPU/GPU frequency readouts
-- Color-coded warnings at configurable thresholds
-- Indicator order: CPU → GPU → NPU → Memory → Swap
-- Requires `intel-gpu-tools` for GPU, NPU monitoring is built-in via sysfs
+![VPN Indicator in action](.github/images/vpn-indicator.png)
 
-**Branch**: [`feature/gpu-npu-monitoring`](../../tree/feature/gpu-npu-monitoring) · [Documentation](GPU_NPU_MONITORING.md)
+### Features
 
----
+- **Real-time monitoring**: Checks VPN status every 5 seconds
+- **Visual indicator**: Shows vpn_lock icon in the system tray
+  - 🟢 Green when connected
+  - ⚫ Grey when disconnected
+- **Click to toggle**: Single click to run VPN toggle script
+- **Multiple VPN support**: Detects OpenVPN, WireGuard, or tun0 interface
 
-### 🔒 [VPN Indicator](../../tree/feature/vpn-indicator)
-Real-time VPN status indicator in the Quickshell bar.
+### Files Added/Modified
 
-- Green `vpn_lock` icon when connected, grey when disconnected
-- Click to toggle VPN connection via custom script
-- Supports OpenVPN, WireGuard, and tun0 interfaces
-- Polls every 5 seconds with 2-second post-toggle refresh
+#### New Files
+- `dots/quickshell/ii/services/VpnStatus.qml` - VPN status monitoring service
 
-**Branch**: [`feature/vpn-indicator`](../../tree/feature/vpn-indicator)
+#### Modified Files
+- `dots/quickshell/ii/modules/ii/bar/BarContent.qml` - Bar integration (around line 306)
 
----
+### Installation
 
-### 🤖 [GitHub Copilot Integration](../../tree/feature/copilot-integration)
-Integrates GitHub Copilot as an AI model in the sidebar chat panel.
-
-- Uses `gh copilot` CLI for authentication — no API key required
-- Leverages existing Copilot subscription seamlessly
-- Custom QML API strategy with full chat service (Ai.qml)
-
-**Branch**: [`feature/copilot-integration`](../../tree/feature/copilot-integration)
-
----
-
-### 🌍 [Custom View & World Clocks](../../tree/feature/custom-view)
-UI enhancements to the sidebar and bar.
-
-- **World clocks widget** in the sidebar with multiple timezone support
-- **Work week number** displayed in the top bar clock
-- US date format (MM/dd) in the bar
-- Clocks sorted by UTC offset with "City, XX" labels
-
-**Branch**: [`feature/custom-view`](../../tree/feature/custom-view)
-
----
-
-### ⚙️ [Custom Configs](../../tree/feature/custom-configs)
-Personal configuration customizations and QoL improvements.
-
-- Custom Hyprland keybindings (Docker toggle, VPN shortcut, workspace management)
-- `nm-applet` as headless NetworkManager secret agent
-- Polkit fingerprint authentication support
-- Custom autostart entries and resource display options
-
-**Branch**: [`feature/custom-configs`](../../tree/feature/custom-configs)
-
----
-
-### 🛜 [WiFi Reconnect Fix](../../tree/fix/wifi-reconnect-after-password)
-Fixes a bug where WiFi failed to reconnect after entering a new password.
-
-- `connectProc.exec()` was incorrectly toggling `.running` instead of calling `.exec()`
-- Also fixes a null reference on retry
-
-**Branch**: [`fix/wifi-reconnect-after-password`](../../tree/fix/wifi-reconnect-after-password)
-
----
-
-## 📦 Installation
-
-### 1. Install the base shell
+If you want to use just this feature:
 
 ```bash
-git clone https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-./setup install
+# Copy the VPN service
+cp dots/quickshell/ii/services/VpnStatus.qml ~/.config/quickshell/ii/services/
+
+# Add to your BarContent.qml (around line 306, near other indicators):
+MouseArea {
+    Layout.fillHeight: true
+    Layout.rightMargin: indicatorsRowLayout.realSpacing
+    implicitWidth: vpnIcon.implicitWidth
+    implicitHeight: vpnIcon.implicitHeight
+    cursorShape: Qt.PointingHandCursor
+    hoverEnabled: true
+    onClicked: VpnStatus.toggleVpn()
+    
+    MaterialSymbol {
+        id: vpnIcon
+        anchors.centerIn: parent
+        text: VpnStatus.materialSymbol
+        fill: VpnStatus.symbolFill
+        iconSize: Appearance.font.pixelSize.larger
+        color: VpnStatus.connected ? VpnStatus.indicatorColor : rightSidebarButton.colText
+    }
+}
+
+# Also add the import at the top of BarContent.qml:
+import qs.services.vpnstatus
 ```
 
-### 2. Apply features
+### Requirements
 
-```bash
-# Interactive TUI — pick which features to apply
-./apply-features.sh
+- VPN toggle script at `~/Documents/vpn-toggle.sh` (or modify the path in VpnStatus.qml)
+- One of: OpenVPN, WireGuard, or any VPN that creates a tun0 interface
 
-# Or apply everything at once
-./apply-all-features.sh
-```
+### How It Works
 
-This merges selected feature branches in the correct order, auto-resolves conflicts, backs up your config, and deploys. See [.github/README.md](.github/README.md) for full details.
+The `VpnStatus.qml` service:
+1. Runs a bash command to check for VPN processes and interfaces
+2. Updates the `connected` property based on findings
+3. Provides a `toggleVpn()` function to execute your toggle script
+4. Refreshes status after toggle with a 2-second delay
 
-| Flag | Description |
-|------|-------------|
-| `--all` | Apply all features without TUI (apply-features.sh) |
+### Customization
 
-| `--no-backup` | Skip backing up current config |
-| `--dry-run` | Create integration branch but don't deploy |
-| `--keep-branch` | Preserve the integration branch after deploying |
-
-### Use Individual Features
-
-Each feature branch can also be used independently:
-
-```bash
-git clone -b feature/gpu-npu-monitoring https://github.com/tslove923/dots-hyprland
-cd dots-hyprland
-# Follow instructions in GPU_NPU_MONITORING.md
-```
-
-## 🔄 Staying Updated
-
-This fork tracks upstream changes from end-4's original repository:
-
-```bash
-git remote add upstream https://github.com/end-4/dots-hyprland
-git fetch upstream
-git merge upstream/main
-```
-
-## 📚 Original Repository
-
-This is based on [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland) — an amazing Hyprland configuration (illogical-impulse). All credit for the base configuration goes to end-4 and contributors.
-
-## 🤝 Contributing
-
-Feel free to:
-- Use these features in your own setup
-- Suggest improvements via issues
-- Submit pull requests for enhancements
-
-## 📝 License
-
-Same as the original repository. See [LICENSE](LICENSE) for details.
+Edit `dots/quickshell/ii/services/VpnStatus.qml` to customize:
+- Check interval (default: 5000ms = 5 seconds)
+- VPN detection command (line 22)
+- Toggle script path (line 58)
+- Colors (line 17: `indicatorColor`)
 
 ---
 
-**Upstream**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
-**This Fork**: Custom features by tslove923
+**Original Repository**: [end-4/dots-hyprland](https://github.com/end-4/dots-hyprland)  
+**Customization by**: tslove923

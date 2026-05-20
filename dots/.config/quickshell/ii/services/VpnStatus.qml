@@ -1,0 +1,82 @@
+pragma Singleton
+
+import Quickshell
+import Quickshell.Io
+import QtQuick
+import qs.modules.common
+
+/**
+ * VPN status service.
+ */
+Singleton {
+    id: root
+
+    property bool connected: false
+    property string status: "disconnected"
+    property string materialSymbol: "vpn_lock"
+    property int symbolFill: connected ? 1 : 0
+    property color indicatorColor: connected ? "#a6e3a1" : "#f38ba8"
+    property string toggleScript: Config.options.vpn.toggleScript
+
+    // Process to check VPN status
+    Process {
+        id: checkVpnProcess
+        command: ["bash", "-c", "if pgrep -x openvpn > /dev/null || ip link show type wireguard 2>/dev/null | grep -q '^[0-9]' || ip link show tun0 &>/dev/null; then echo 'connected'; else echo 'disconnected'; fi"]
+
+        stdout: SplitParser {
+            onRead: data => {
+                const status = data.trim()
+                root.connected = (status === "connected")
+                root.status = status
+            }
+        }
+
+        onExited: (code, exitStatus) => {
+            // Restart check after exit
+            Qt.callLater(() => {
+                if (statusTimer.running) {
+                    checkVpnProcess.running = true
+                }
+            })
+        }
+    }
+
+    // Timer to periodically check VPN status
+    Timer {
+        id: statusTimer
+        interval: 5000 // Check every 5 seconds
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: {
+            if (!checkVpnProcess.running) {
+                checkVpnProcess.running = true
+            }
+        }
+    }
+
+    // Function to toggle VPN
+    function toggleVpn(): void {
+        if (!toggleScript) {
+            console.warn("VPN toggle script not configured. Set vpn.toggleScript in config.json")
+            return
+        }
+        Quickshell.execDetached(["bash", toggleScript])
+        
+        // Check status after a short delay
+        Qt.callLater(() => {
+            statusCheckDelayTimer.start()
+        })
+    }
+
+    Timer {
+        id: statusCheckDelayTimer
+        interval: 2000
+        repeat: false
+        onTriggered: {
+            if (!checkVpnProcess.running) {
+                checkVpnProcess.running = true
+            }
+        }
+    }
+}
