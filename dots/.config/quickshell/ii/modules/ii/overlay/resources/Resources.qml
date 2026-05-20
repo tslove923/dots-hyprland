@@ -15,26 +15,54 @@ StyledOverlayWidget {
     id: root
     minimumWidth: 300
     minimumHeight: 200
-    property list<var> resources: [
-        {
-            "icon": "planner_review",
-            "name": Translation.tr("CPU"),
-            "history": ResourceUsage.cpuUsageHistory,
-            "maxAvailableString": ResourceUsage.maxAvailableCpuString
-        },
-        {
-            "icon": "memory",
-            "name": Translation.tr("RAM"),
-            "history": ResourceUsage.memoryUsageHistory,
-            "maxAvailableString": ResourceUsage.maxAvailableMemoryString
-        },
-        {
-            "icon": "swap_horiz",
-            "name": Translation.tr("Swap"),
-            "history": ResourceUsage.swapUsageHistory,
-            "maxAvailableString": ResourceUsage.maxAvailableSwapString
-        },
-    ]
+    
+    function getFilteredResources() {
+        let resources = [
+            {
+                "icon": "planner_review",
+                "name": Translation.tr("CPU"),
+                "history": ResourceUsage.cpuUsageHistory,
+                "maxAvailableString": ResourceUsage.maxAvailableCpuString
+            },
+        ];
+        
+        if (ResourceUsage.gpuAvailable) {
+            resources.push({
+                "icon": "stadia_controller",
+                "name": Translation.tr("GPU"),
+                "history": ResourceUsage.gpuUsageHistory,
+                "maxAvailableString": ResourceUsage.maxAvailableGpuString
+            });
+        }
+        
+        if (ResourceUsage.npuAvailable) {
+            resources.push({
+                "icon": "neurology",
+                "name": Translation.tr("NPU"),
+                "history": ResourceUsage.npuUsageHistory,
+                "maxAvailableString": ResourceUsage.maxAvailableNpuString
+            });
+        }
+        
+        resources.push(
+            {
+                "icon": "memory",
+                "name": Translation.tr("RAM"),
+                "history": ResourceUsage.memoryUsageHistory,
+                "maxAvailableString": ResourceUsage.maxAvailableMemoryString
+            },
+            {
+                "icon": "swap_horiz",
+                "name": Translation.tr("Swap"),
+                "history": ResourceUsage.swapUsageHistory,
+                "maxAvailableString": ResourceUsage.maxAvailableSwapString
+            },
+        );
+        
+        return resources;
+    }
+    
+    property list<var> resources: getFilteredResources()
 
     contentItem: OverlayBackground {
         id: contentItem

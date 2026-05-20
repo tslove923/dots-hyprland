@@ -21,6 +21,87 @@ StyledPopup {
             spacing: 8
 
             StyledPopupHeaderRow {
+                icon: "planner_review"
+                label: "CPU"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "bolt"
+                    label: Translation.tr("Load:")
+                    value: `${Math.round(ResourceUsage.cpuUsage * 100)}%`
+                }
+                StyledPopupValueRow {
+                    icon: "speed"
+                    label: Translation.tr("Frequency:")
+                    value: `${ResourceUsage.cpuFreqMhz} MHz`
+                }
+            }
+        }
+
+        Column {
+            visible: ResourceUsage.gpuAvailable
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "stadia_controller"
+                label: "GPU"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "bolt"
+                    label: Translation.tr("Load:")
+                    value: `${Math.round(ResourceUsage.gpuUsage * 100)}%`
+                }
+                StyledPopupValueRow {
+                    icon: "speed"
+                    label: Translation.tr("Frequency:")
+                    value: ResourceUsage.gpuFreqMhz > 0 ? `${ResourceUsage.gpuFreqMhz} MHz` : Translation.tr("Idle")
+                }
+            }
+        }
+
+        Column {
+            visible: ResourceUsage.npuAvailable
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
+                icon: "neurology"
+                label: "NPU"
+            }
+            Column {
+                spacing: 4
+                StyledPopupValueRow {
+                    icon: "bolt"
+                    label: Translation.tr("Load:")
+                    value: `${Math.round(ResourceUsage.npuUsage * 100)}%`
+                }
+                StyledPopupValueRow {
+                    icon: "speed"
+                    label: Translation.tr("Frequency:")
+                    value: ResourceUsage.npuFreqMhz > 0 ? `${ResourceUsage.npuFreqMhz} MHz` : Translation.tr("Suspended")
+                }
+                StyledPopupValueRow {
+                    icon: "memory"
+                    label: Translation.tr("Memory:")
+                    value: `${(ResourceUsage.npuMemoryBytes / (1024 * 1024)).toFixed(0)} MB`
+                }
+                StyledPopupValueRow {
+                    icon: "power_settings_new"
+                    label: Translation.tr("Status:")
+                    value: ResourceUsage.npuStatus === "active" ? Translation.tr("Active") : Translation.tr("Suspended")
+                }
+            }
+        }
+
+        Column {
+            anchors.top: parent.top
+            spacing: 8
+
+            StyledPopupHeaderRow {
                 icon: "memory"
                 label: "RAM"
             }
@@ -69,24 +150,6 @@ StyledPopup {
                     icon: "empty_dashboard"
                     label: Translation.tr("Total:")
                     value: root.formatKB(ResourceUsage.swapTotal)
-                }
-            }
-        }
-
-        Column {
-            anchors.top: parent.top
-            spacing: 8
-
-            StyledPopupHeaderRow {
-                icon: "planner_review"
-                label: "CPU"
-            }
-            Column {
-                spacing: 4
-                StyledPopupValueRow {
-                    icon: "bolt"
-                    label: Translation.tr("Load:")
-                    value: `${Math.round(ResourceUsage.cpuUsage * 100)}%`
                 }
             }
         }
