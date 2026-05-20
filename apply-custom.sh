@@ -133,6 +133,44 @@ CFG_DESCS+=("Copilot icon in top-left corner")
 CFG_KEYS+=("topLeftIcon")
 CFG_VALUES+=('"copilot"')
 
+# QML feature deployments: tag, description, file list (pipe-separated, relative to dots/.config/quickshell/ii/)
+# Files that modify existing upstream files vs new files — all get copied from repo to live
+declare -a QML_TAGS QML_DESCS QML_FILES
+
+QML_TAGS+=("vpn_indicator")
+QML_DESCS+=("VPN status indicator in bar (click to toggle)")
+QML_FILES+=("services/VpnStatus.qml|modules/ii/bar/BarContent.qml")
+
+QML_TAGS+=("homeassistant")
+QML_DESCS+=("Home Assistant panel in bar")
+QML_FILES+=("services/HomeAssistant.qml|modules/ii/bar/BarContent.qml|modules/ii/bar/home/HomeBar.qml|modules/ii/bar/home/HomePopup.qml|modules/settings/BarConfig.qml|modules/settings/ServicesConfig.qml")
+
+QML_TAGS+=("gpu_npu_monitoring")
+QML_DESCS+=("GPU & NPU usage indicators in bar")
+QML_FILES+=("services/ResourceUsage.qml|modules/ii/bar/Resources.qml|modules/ii/bar/ResourcesPopup.qml|modules/ii/verticalBar/Resources.qml|modules/ii/overlay/resources/Resources.qml")
+
+QML_TAGS+=("us_clock_worldclocks")
+QML_DESCS+=("US date format, work week, world clocks sidebar")
+QML_FILES+=("services/DateTime.qml|modules/ii/bar/ClockWidget.qml|modules/ii/sidebarRight/SidebarRightContent.qml|modules/ii/sidebarRight/WorldClocks.qml")
+
+QML_TAGS+=("mpris_fix")
+QML_DESCS+=("MPRIS active player priority fix")
+QML_FILES+=("services/MprisController.qml|modules/ii/bar/Media.qml|modules/ii/mediaControls/MediaControls.qml")
+
+QML_TAGS+=("copilot_ai")
+QML_DESCS+=("GitHub Copilot in AI chat panel")
+QML_FILES+=("services/Ai.qml")
+
+QML_TAGS+=("wifi_fix")
+QML_DESCS+=("WiFi reconnect after password fix")
+QML_FILES+=("services/Network.qml")
+
+# Copilot has an extra file in a different source path
+QML_COPILOT_EXTRA="dots/quickshell/ii/services/ai/CopilotCliApiStrategy.qml"
+
+# Config.qml is shared by multiple features — always deploy if any QML feature is selected
+QML_SHARED="modules/common/Config.qml"
+
 # ─── TUI ──────────────────────────────────────────────────────────────────────
 
 show_checklist() {
@@ -176,6 +214,14 @@ run_tui() {
     done
     selected=$(show_checklist "QuickShell Config" "Select config.json patches:" "${cfg_args[@]}") || true
     IFS=' ' read -ra SELECTED_CFG <<< "$selected"
+
+    # ── QML Features ──
+    local qml_args=()
+    for i in "${!QML_TAGS[@]}"; do
+        qml_args+=("${QML_TAGS[$i]}" "${QML_DESCS[$i]}" "on")
+    done
+    selected=$(show_checklist "QuickShell Features" "Select QML features to deploy:" "${qml_args[@]}") || true
+    IFS=' ' read -ra SELECTED_QML <<< "$selected"
 }
 
 # ─── Generators ───────────────────────────────────────────────────────────────
@@ -299,6 +345,63 @@ sync_scripts() {
     fi
 }
 
+deploy_qml() {
+    if [[ ${#SELECTED_QML[@]} -eq 0 ]]; then
+        return
+    fi
+
+    local qs_live="$HOME/.config/quickshell/ii"
+    local qs_repo="$SCRIPT_DIR/dots/.config/quickshell/ii"
+    local -A deployed
+    local count=0
+
+    # Deploy shared Config.qml (modified by multiple features)
+    local shared_src="$qs_repo/$QML_SHARED"
+    local shared_dst="$qs_live/$QML_SHARED"
+    if [[ -f "$shared_src" ]]; then
+        backup_file "$shared_dst"
+        mkdir -p "$(dirname "$shared_dst")"
+        cp "$shared_src" "$shared_dst"
+        deployed["$QML_SHARED"]=1
+        ((count++))
+    fi
+
+    # Deploy per-feature files
+    for tag in "${SELECTED_QML[@]}"; do
+        for i in "${!QML_TAGS[@]}"; do
+            if [[ "${QML_TAGS[$i]}" == "$tag" ]]; then
+                IFS='|' read -ra files <<< "${QML_FILES[$i]}"
+                for f in "${files[@]}"; do
+                    if [[ -n "${deployed[$f]:-}" ]]; then
+                        continue  # already copied (shared file)
+                    fi
+                    local src="$qs_repo/$f"
+                    local dst="$qs_live/$f"
+                    if [[ -f "$src" ]]; then
+                        backup_file "$dst"
+                        mkdir -p "$(dirname "$dst")"
+                        cp "$src" "$dst"
+                        deployed["$f"]=1
+                        ((count++))
+                    else
+                        echo "  ⚠ Missing: $src"
+                    fi
+                done
+
+                # Handle Copilot extra file
+                if [[ "$tag" == "copilot_ai" && -f "$SCRIPT_DIR/$QML_COPILOT_EXTRA" ]]; then
+                    local copilot_dst="$qs_live/services/ai/CopilotCliApiStrategy.qml"
+                    mkdir -p "$(dirname "$copilot_dst")"
+                    cp "$SCRIPT_DIR/$QML_COPILOT_EXTRA" "$copilot_dst"
+                    ((count++))
+                fi
+            fi
+        done
+    done
+
+    echo "  ✓ Deployed $count QML file(s) to $qs_live"
+}
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
@@ -328,10 +431,11 @@ main() {
 
     sync_scripts
     patch_config_json
+    deploy_qml
 
     echo ""
-    echo "Done! Reload Hyprland to apply:"
-    echo "  hyprctl reload"
+    echo "Done! Reload to apply:"
+    echo "  hyprctl reload && qs -c ii &"
     echo ""
 }
 
