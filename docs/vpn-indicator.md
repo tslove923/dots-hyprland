@@ -26,8 +26,10 @@ All paths are relative to `dots/.config/quickshell/ii/`.
 
 ## Requirements
 
-- A VPN toggle script (default: `~/Documents/vpn-toggle.sh`)
+- A VPN toggle script (set via `vpn.toggleScript`)
 - One of: WireGuard, OpenVPN, or any VPN creating a tun0 interface
+
+See also: [WireGuard toggle example setup](vpn-toggle-wireguard-example.md)
 
 ## Configuration
 
@@ -35,7 +37,9 @@ Edit `~/.config/illogical-impulse/config.json`:
 
 ```json
 {
-  "vpnToggleScript": "~/Documents/vpn-toggle.sh"
+  "vpn": {
+    "toggleScript": "~/.config/hypr/custom/scripts/vpn_toggle.sh"
+  }
 }
 ```
 

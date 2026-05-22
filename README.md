@@ -12,7 +12,7 @@ All features live on `main` — no branch juggling required.
 | Feature | Description | Docs |
 |---------|-------------|------|
 | GPU & NPU Monitoring | Real-time DRM cycle counter + sysfs utilization in the bar | [docs/gpu-npu-monitoring.md](docs/gpu-npu-monitoring.md) |
-| VPN Indicator | Bar icon with click-to-toggle, WireGuard/OpenVPN detection | [docs/vpn-indicator.md](docs/vpn-indicator.md) |
+| VPN Indicator | Bar icon with click-to-toggle, WireGuard/OpenVPN detection | [docs/vpn-indicator.md](docs/vpn-indicator.md), [docs/vpn-toggle-wireguard-example.md](docs/vpn-toggle-wireguard-example.md) |
 | GitHub Copilot | AI chat panel via `gh copilot` CLI | [docs/copilot-integration.md](docs/copilot-integration.md) |
 | Home Assistant | HomeKit-style device control panel in the bar | [docs/homeassistant-integration.md](docs/homeassistant-integration.md) |
 | US Date & World Clocks | MM/dd format, work week, timezone sidebar widget | [docs/us-clock-worldclocks.md](docs/us-clock-worldclocks.md) |
