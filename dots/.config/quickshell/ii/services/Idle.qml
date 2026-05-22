@@ -2,6 +2,7 @@ pragma Singleton
 import qs.modules.common
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 
 /**
@@ -31,6 +32,34 @@ Singleton {
             root.inhibit = !root.inhibit;
         }
         Persistent.states.idle.inhibit = root.inhibit;
+    }
+
+    function notifyInhibitState() {
+        Quickshell.execDetached([
+            "notify-send",
+            "Caffeine",
+            root.inhibit ? "Idle inhibitor enabled" : "Idle inhibitor disabled",
+            "-a", "Illogical Impulse"
+        ])
+    }
+
+    IpcHandler {
+        target: "idle"
+
+        function toggle(): void {
+            root.toggleInhibit()
+            root.notifyInhibitState()
+        }
+
+        function enable(): void {
+            root.toggleInhibit(true)
+            root.notifyInhibitState()
+        }
+
+        function disable(): void {
+            root.toggleInhibit(false)
+            root.notifyInhibitState()
+        }
     }
 
     IdleInhibitor {
