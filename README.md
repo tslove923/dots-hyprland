@@ -45,6 +45,17 @@ Hyprland Lua transition note:
 ./apply-custom.sh --migrate-rules
 ```
 
+### Apply hypridle profile helper
+
+```bash
+scripts/apply_hypridle_profile.sh --profile desktop-no-lock-suspend
+```
+
+Profiles:
+
+- `desktop-no-lock-suspend`: disable lock/suspend, keep monitor DPMS sleep at 10 minutes
+- `default`: restore repo default `hypridle.conf`
+
 ## Staying Updated
 
 ```bash
