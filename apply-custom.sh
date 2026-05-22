@@ -83,7 +83,6 @@ KB_CODE+=('-- Disable conflicting defaults from upstream keybinds.conf before re
 hl.exec_cmd("hyprctl keyword unbind SUPER,W")
 hl.exec_cmd("hyprctl keyword unbind SUPER,C")
 hl.exec_cmd("hyprctl keyword unbind SUPER,X")
-hl.exec_cmd("hyprctl keyword unbind SUPER,I")
 hl.bind("SUPER + W", hl.dsp.window.close(), { description = "Window: Close (backup remap)" })
 hl.bind("SUPER + B", hl.dsp.exec_cmd(HOME .. "/.config/hypr/hyprland/scripts/launch_first_available.sh \"zen-browser\" \"google-chrome-stable\" \"firefox\" \"brave\" \"chromium\" \"microsoft-edge-stable\" \"opera\" \"librewolf\""), { description = "App: Browser (backup remap)" })
 hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd(HOME .. "/.config/hypr/hyprland/scripts/launch_first_available.sh \"code\" \"codium\" \"cursor\" \"zed\" \"zedit\" \"zeditor\" \"kate\" \"gnome-text-editor\" \"emacs\" \"command -v nvim && kitty -1 nvim\" \"command -v micro && kitty -1 micro\""), { description = "App: Code editor (backup remap)" })
