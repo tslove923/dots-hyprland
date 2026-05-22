@@ -66,10 +66,28 @@ KB_DESCS+=("Super+Alt+V: VPN toggle (needs vpn-indicator)")
 KB_CODE+=('hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd(SCRIPTS .. "/vpn_toggle.sh"), { description = "VPN toggle" })')
 
 KB_TAGS+=("move_to_workspace")
-KB_DESCS+=("Super+Shift+[0-9]: Move window to workspace")
+KB_DESCS+=("Workspace send: Super+Alt+[0-9] send active window, Super+Shift+[0-9] send and follow (workspace-group aware)")
 KB_CODE+=('for i = 1, 10 do
-    hl.bind("SUPER + SHIFT + " .. (i % 10), hl.dsp.window.move({ workspace = i, follow = false }),
-        { description = "Window: Send to workspace " .. i })
+    local key = i % 10
+    hl.unbind("SUPER + ALT + " .. key)
+    hl.unbind("SUPER + SHIFT + " .. key)
+    hl.bind("SUPER + ALT + " .. key, function()
+        hl.dispatch(hl.dsp.window.move({ workspace = workspace_in_group(i), follow = false }))
+    end, { description = "Window: Send to workspace " .. i })
+    hl.bind("SUPER + SHIFT + " .. key, function()
+        hl.dispatch(hl.dsp.window.move({ workspace = workspace_in_group(i), follow = true }))
+    end, { description = "Window: Send to workspace " .. i .. " and follow" })
+end
+
+-- Also bind raw keycodes because some layouts map number keys differently.
+for i = 1, 10 do
+    local numberkey = { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }
+    hl.bind("SUPER + ALT + code:" .. numberkey[i], function()
+        hl.dispatch(hl.dsp.window.move({ workspace = workspace_in_group(i), follow = false }))
+    end)
+    hl.bind("SUPER + SHIFT + code:" .. numberkey[i], function()
+        hl.dispatch(hl.dsp.window.move({ workspace = workspace_in_group(i), follow = true }))
+    end)
 end')
 
 KB_TAGS+=("workspace_nav")
@@ -324,6 +342,44 @@ patch_config_json() {
     echo "  ✓ $QS_CONFIG patched"
 }
 
+sync_optional_assets() {
+    local copy_copilot_icon=0
+
+    for tag in "${SELECTED_CFG[@]}"; do
+        if [[ "$tag" == "copilot_icon" ]]; then
+            copy_copilot_icon=1
+            break
+        fi
+    done
+
+    if [[ $copy_copilot_icon -eq 1 && -f "$SCRIPT_DIR/$QML_COPILOT_ICON" ]]; then
+        local dst_dir="$HOME/.config/quickshell/ii/assets/icons"
+        mkdir -p "$dst_dir"
+        cp "$SCRIPT_DIR/$QML_COPILOT_ICON" "$dst_dir/"
+        echo "  ✓ Synced Copilot icon to $dst_dir"
+    fi
+}
+
+ensure_rules_lua_template() {
+    local src="$SCRIPT_DIR/dots/.config/hypr/custom/rules.lua"
+    local dst="$HYPR_CUSTOM/rules.lua"
+    local legacy_conf="$HYPR_CUSTOM/rules.conf"
+
+    if [[ -f "$dst" ]]; then
+        return
+    fi
+
+    if [[ -f "$src" ]]; then
+        cp "$src" "$dst"
+        echo "  ✓ Created $dst"
+    fi
+
+    if [[ -f "$legacy_conf" ]] && grep -Eq '^[[:space:]]*windowrule[[:space:]]*=' "$legacy_conf"; then
+        echo "  ⚠ Detected legacy rules in $legacy_conf"
+        echo "    Migrate custom rules to $dst (Lua mode does not load rules.conf)."
+    fi
+}
+
 sync_scripts() {
     mkdir -p "$SCRIPTS_DST"
     # Only copy scripts needed by selected features
@@ -453,7 +509,9 @@ main() {
     fi
 
     sync_scripts
+    ensure_rules_lua_template
     patch_config_json
+    sync_optional_assets
     deploy_qml
 
     echo ""
