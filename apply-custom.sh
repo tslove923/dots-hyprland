@@ -79,12 +79,12 @@ hl.bind("SUPER + ALT + Left", hl.dsp.focus({ workspace = "r-1" }), { description
 
 KB_TAGS+=("backup_omarchy_remaps")
 KB_DESCS+=("Backup remaps (Omarchy-style workflow): Super+Q disabled, Super+W close, Super+B browser (replaces sidebar), Super+Alt+C/Ctrl+Super+C code, Ctrl+Super+X text, Super+Alt+I ii idle inhibitor (right-panel synced), Super+Shift+V clipboard history")
-KB_CODE+=('-- Disable conflicting defaults from upstream keybinds.conf before remapping.
-hl.exec_cmd("hyprctl keyword unbind SUPER,Q")
-hl.exec_cmd("hyprctl keyword unbind SUPER,W")
-hl.exec_cmd("hyprctl keyword unbind SUPER,B")
-hl.exec_cmd("hyprctl keyword unbind SUPER,C")
-hl.exec_cmd("hyprctl keyword unbind SUPER,X")
+KB_CODE+=('-- Disable conflicting defaults from upstream keybinds before remapping.
+hl.unbind("SUPER + Q")
+hl.unbind("SUPER + W")
+hl.unbind("SUPER + B")
+hl.unbind("SUPER + C")
+hl.unbind("SUPER + X")
 hl.bind("SUPER + W", hl.dsp.window.close(), { description = "Window: Close (backup remap)" })
 hl.bind("SUPER + B", hl.dsp.exec_cmd(HOME .. "/.config/hypr/hyprland/scripts/launch_first_available.sh \"zen-browser\" \"google-chrome-stable\" \"firefox\" \"brave\" \"chromium\" \"microsoft-edge-stable\" \"opera\" \"librewolf\""), { description = "App: Browser (backup remap)" })
 hl.bind("SUPER + ALT + C", hl.dsp.exec_cmd(HOME .. "/.config/hypr/hyprland/scripts/launch_first_available.sh \"code\" \"codium\" \"cursor\" \"zed\" \"zedit\" \"zeditor\" \"kate\" \"gnome-text-editor\" \"emacs\" \"command -v nvim && kitty -1 nvim\" \"command -v micro && kitty -1 micro\""), { description = "App: Code editor (backup remap)" })
