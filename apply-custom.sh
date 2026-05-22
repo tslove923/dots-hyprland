@@ -63,7 +63,7 @@ KB_CODE+=('hl.bind("SUPER + ALT + B", hl.dsp.exec_cmd("kitty bluetui"), { descri
 
 KB_TAGS+=("vpn_toggle")
 KB_DESCS+=("Super+Alt+V: VPN toggle (needs vpn-indicator)")
-KB_CODE+=('hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd(HOME .. "/Documents/vpn-toggle.sh"), { description = "VPN toggle" })')
+KB_CODE+=('hl.bind("SUPER + ALT + V", hl.dsp.exec_cmd(SCRIPTS .. "/vpn_toggle.sh"), { description = "VPN toggle" })')
 
 KB_TAGS+=("move_to_workspace")
 KB_DESCS+=("Super+Shift+[0-9]: Move window to workspace")
@@ -325,6 +325,7 @@ sync_scripts() {
     for tag in "${SELECTED_KB[@]}"; do
         case "$tag" in
             docker_toggle) needed+=(toggle_docker.sh) ;;
+            vpn_toggle) needed+=(vpn_toggle.sh) ;;
             startup_apps) needed+=(startup-apps.sh) ;;
         esac
     done
