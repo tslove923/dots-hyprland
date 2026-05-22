@@ -14,6 +14,7 @@ Usage:
 Profiles:
   default                 Copy repo hypridle.conf as-is
   desktop-no-lock-suspend Disable lock/suspend, keep DPMS sleep after 10 minutes
+  laptop-lock-no-suspend  Keep lock + DPMS behavior, disable suspend timeout
 
 Examples:
   scripts/apply_hypridle_profile.sh --profile desktop-no-lock-suspend
@@ -84,6 +85,32 @@ listener {
 }
 EOF
     ;;
+
+  laptop-lock-no-suspend)
+  cat > "$TARGET" <<'EOF'
+$lock_cmd = hyprctl dispatch 'hl.dsp.global("quickshell:lock")' & pidof qs quickshell hyprlock || hyprlock
+# $lock_cmd = pidof hyprlock || hyprlock
+$suspend_cmd = systemctl suspend || loginctl suspend
+
+general {
+  lock_cmd = $lock_cmd
+  before_sleep_cmd = loginctl lock-session
+  after_sleep_cmd = hyprctl dispatch 'hl.dsp.global("quickshell:lockFocus")'
+  inhibit_sleep = 3
+}
+
+listener {
+  timeout = 300 # 5mins
+  on-timeout = loginctl lock-session
+}
+
+listener {
+  timeout = 600 # 10mins
+  on-timeout = hyprctl dispatch 'hl.dsp.dpms(false)'
+  on-resume = hyprctl dispatch 'hl.dsp.dpms(true)'
+}
+EOF
+  ;;
 
   *)
     echo "Unknown profile: $PROFILE" >&2

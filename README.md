@@ -54,6 +54,7 @@ scripts/apply_hypridle_profile.sh --profile desktop-no-lock-suspend
 Profiles:
 
 - `desktop-no-lock-suspend`: disable lock/suspend, keep monitor DPMS sleep at 10 minutes
+- `laptop-lock-no-suspend`: keep lock + DPMS behavior, disable suspend timeout
 - `default`: restore repo default `hypridle.conf`
 
 ## Staying Updated
