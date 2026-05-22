@@ -57,22 +57,6 @@ KB_TAGS+=("docker_toggle")
 KB_DESCS+=("Super+Alt+D: Toggle Docker on/off")
 KB_CODE+=('hl.bind("SUPER + ALT + D", hl.dsp.exec_cmd(SCRIPTS .. "/toggle_docker.sh"), { description = "Toggle Docker on/off" })')
 
-KB_TAGS+=("nova_type")
-KB_DESCS+=("Super+A: Nova type command")
-KB_CODE+=('hl.bind("SUPER + A", hl.dsp.exec_cmd(HOME .. "/projects/nova-npu/.venv/bin/nova --type-command"), { description = "Nova type command" })')
-
-KB_TAGS+=("nova_voice")
-KB_DESCS+=("Super+Z: Nova voice typing")
-KB_CODE+=('hl.bind("SUPER + Z", hl.dsp.exec_cmd(HOME .. "/projects/nova-npu/.venv/bin/nova --trigger-record"), { description = "Nova voice typing" })')
-
-KB_TAGS+=("nova_wake_toggle")
-KB_DESCS+=("Super+Alt+A: Toggle Nova wake word")
-KB_CODE+=('hl.bind("SUPER + ALT + A", hl.dsp.exec_cmd(SCRIPTS .. "/nova_toggle.sh wake"), { description = "Toggle wake word" })')
-
-KB_TAGS+=("nova_tts_toggle")
-KB_DESCS+=("Super+Alt+Z: Toggle Nova TTS")
-KB_CODE+=('hl.bind("SUPER + ALT + Z", hl.dsp.exec_cmd(SCRIPTS .. "/nova_toggle.sh tts"), { description = "Toggle TTS" })')
-
 KB_TAGS+=("bluetui")
 KB_DESCS+=("Super+Alt+B: Bluetooth TUI")
 KB_CODE+=('hl.bind("SUPER + ALT + B", hl.dsp.exec_cmd("kitty bluetui"), { description = "Bluetooth TUI" })')
@@ -341,7 +325,6 @@ sync_scripts() {
     for tag in "${SELECTED_KB[@]}"; do
         case "$tag" in
             docker_toggle) needed+=(toggle_docker.sh) ;;
-            nova_wake_toggle|nova_tts_toggle) needed+=(nova_toggle.sh) ;;
             startup_apps) needed+=(startup-apps.sh) ;;
         esac
     done
