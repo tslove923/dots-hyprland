@@ -78,9 +78,11 @@ KB_CODE+=('hl.bind("SUPER + ALT + Right", hl.dsp.focus({ workspace = "r+1" }), {
 hl.bind("SUPER + ALT + Left", hl.dsp.focus({ workspace = "r-1" }), { description = "Workspace: Previous" })')
 
 KB_TAGS+=("backup_omarchy_remaps")
-KB_DESCS+=("Backup remaps (Omarchy-style workflow): Super+W close, Super+B browser, Super+Alt+C/Ctrl+Super+C code, Ctrl+Super+X text, Super+Alt+I ii idle inhibitor (right-panel synced), Super+Shift+V clipboard history")
+KB_DESCS+=("Backup remaps (Omarchy-style workflow): Super+Q disabled, Super+W close, Super+B browser (replaces sidebar), Super+Alt+C/Ctrl+Super+C code, Ctrl+Super+X text, Super+Alt+I ii idle inhibitor (right-panel synced), Super+Shift+V clipboard history")
 KB_CODE+=('-- Disable conflicting defaults from upstream keybinds.conf before remapping.
+hl.exec_cmd("hyprctl keyword unbind SUPER,Q")
 hl.exec_cmd("hyprctl keyword unbind SUPER,W")
+hl.exec_cmd("hyprctl keyword unbind SUPER,B")
 hl.exec_cmd("hyprctl keyword unbind SUPER,C")
 hl.exec_cmd("hyprctl keyword unbind SUPER,X")
 hl.bind("SUPER + W", hl.dsp.window.close(), { description = "Window: Close (backup remap)" })
