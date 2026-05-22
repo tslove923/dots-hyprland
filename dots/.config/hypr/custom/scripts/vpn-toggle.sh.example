@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# vpn-toggle.sh.example
+# Toggle a WireGuard VPN connection on/off.
+#
+# Usage:
+#   vpn-toggle.sh.example [connection_name]
+#
+# Defaults to "wg0" if no name is passed.
+#
+# Recommended install:
+#   cp ~/.config/hypr/custom/scripts/vpn-toggle.sh.example ~/.config/hypr/custom/scripts/vpn-toggle.sh
+#   chmod +x ~/.config/hypr/custom/scripts/vpn-toggle.sh
+
+set -euo pipefail
+
+CONNECTION_NAME="${1:-wg0}"
+APP_NAME="VPN"
+
+notify() {
+  local msg="$1"
+  local urgency="${2:-normal}"
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a "$APP_NAME" -u "$urgency" "$msg"
+  fi
+  echo "$msg"
+}
+
+is_active_nm() {
+  nmcli -t -f NAME,TYPE connection show --active 2>/dev/null \
+    | grep -qx "${CONNECTION_NAME}:wireguard"
+}
+
+is_active_wgquick() {
+  sudo -n wg show "$CONNECTION_NAME" >/dev/null 2>&1
+}
+
+if command -v nmcli >/dev/null 2>&1 && nmcli -t -f NAME connection show "$CONNECTION_NAME" >/dev/null 2>&1; then
+  if is_active_nm; then
+    nmcli connection down "$CONNECTION_NAME"
+    notify "WireGuard disconnected: $CONNECTION_NAME"
+  else
+    nmcli connection up "$CONNECTION_NAME"
+    notify "WireGuard connected: $CONNECTION_NAME"
+  fi
+  exit 0
+fi
+
+if command -v wg >/dev/null 2>&1 && command -v wg-quick >/dev/null 2>&1; then
+  if is_active_wgquick; then
+    sudo wg-quick down "$CONNECTION_NAME"
+    notify "WireGuard disconnected: $CONNECTION_NAME"
+  else
+    sudo wg-quick up "$CONNECTION_NAME"
+    notify "WireGuard connected: $CONNECTION_NAME"
+  fi
+  exit 0
+fi
+
+notify "No supported WireGuard toggle method found for '$CONNECTION_NAME'." critical
+exit 1

@@ -3,6 +3,7 @@
 set -euo pipefail
 
 candidates=(
+  "$HOME/.config/hypr/custom/scripts/vpn-toggle.sh"
   "$HOME/.config/illogical-impulse/scripts/vpn-toggle.sh"
   "$HOME/Documents/vpn-toggle.sh"
 )
