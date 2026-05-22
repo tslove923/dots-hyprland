@@ -48,6 +48,15 @@ backup_file() {
     fi
 }
 
+show_help() {
+        cat <<'EOF'
+Usage:
+    ./apply-custom.sh                 Run interactive TUI generator
+    ./apply-custom.sh --migrate-rules Migrate common windowrule lines from rules.conf to rules.lua
+    ./apply-custom.sh -h|--help       Show this help
+EOF
+}
+
 # ─── Feature Definitions ─────────────────────────────────────────────────────
 
 # Keybind features: tag, description, lua_code
@@ -376,8 +385,131 @@ ensure_rules_lua_template() {
 
     if [[ -f "$legacy_conf" ]] && grep -Eq '^[[:space:]]*windowrule[[:space:]]*=' "$legacy_conf"; then
         echo "  ⚠ Detected legacy rules in $legacy_conf"
-        echo "    Migrate custom rules to $dst (Lua mode does not load rules.conf)."
+        echo "    Lua mode does not load rules.conf."
+        echo "    Run: ./apply-custom.sh --migrate-rules"
     fi
+}
+
+migrate_rules_conf_to_lua() {
+    local legacy_conf="$HYPR_CUSTOM/rules.conf"
+    local dst="$HYPR_CUSTOM/rules.lua"
+
+    check_deps
+    ensure_rules_lua_template
+
+    if [[ ! -f "$legacy_conf" ]]; then
+        echo "No legacy rules file found at $legacy_conf"
+        return
+    fi
+
+    python3 - <<'PY'
+import datetime
+import os
+import re
+
+legacy_conf = os.path.expanduser("~/.config/hypr/custom/rules.conf")
+dst = os.path.expanduser("~/.config/hypr/custom/rules.lua")
+
+if not os.path.exists(legacy_conf):
+    print(f"No legacy rules file found at {legacy_conf}")
+    raise SystemExit(0)
+
+with open(legacy_conf, "r", encoding="utf-8") as f:
+    lines = f.readlines()
+
+supported_bool = {
+    "float", "pin", "no_shadow", "no_anim", "center", "tile", "no_blur", "immediate"
+}
+supported_numeric = {"border_size"}
+
+lua_rules = []
+
+for raw in lines:
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        continue
+    if not line.lower().startswith("windowrule"):
+        continue
+    if "=" not in line:
+        continue
+
+    _, rhs = line.split("=", 1)
+    parts = [p.strip() for p in rhs.split(",") if p.strip()]
+    if len(parts) < 2:
+        continue
+
+    match = {}
+    action = None
+    value = None
+
+    for part in parts:
+        if part.startswith("match:"):
+            m = re.match(r"match:(class|title)\s+(.+)$", part)
+            if m:
+                k = m.group(1)
+                v = m.group(2).strip()
+                match[k] = v
+            continue
+
+        m = re.match(r"([a-zA-Z_]+)\s+(on|off|[-]?[0-9]+)$", part)
+        if m:
+            action = m.group(1)
+            value = m.group(2)
+
+    if not action:
+        continue
+
+    if action in supported_bool:
+        v = "true" if value == "on" else "false"
+        keyval = f"{action} = {v}"
+    elif action in supported_numeric:
+        keyval = f"{action} = {value}"
+    else:
+        continue
+
+    match_items = []
+    if "class" in match:
+        match_items.append(f'class = "{match["class"].replace("\\", "\\\\").replace("\"", "\\\"")}"')
+    if "title" in match:
+        match_items.append(f'title = "{match["title"].replace("\\", "\\\\").replace("\"", "\\\"")}"')
+    if not match_items:
+        continue
+
+    lua_rules.append(f"hl.window_rule({{ match = {{ {', '.join(match_items)} }}, {keyval} }})")
+
+if not os.path.exists(dst):
+    with open(dst, "w", encoding="utf-8") as f:
+        f.write("-- Custom rules for Lua-mode Hyprland.\n")
+
+with open(dst, "r", encoding="utf-8") as f:
+    existing = f.read()
+
+begin = "-- BEGIN migrated-rules-conf"
+end = "-- END migrated-rules-conf"
+pattern = re.compile(rf"\n?{re.escape(begin)}.*?{re.escape(end)}\n?", re.S)
+existing = re.sub(pattern, "\n", existing)
+
+if not lua_rules:
+    with open(dst, "w", encoding="utf-8") as f:
+        f.write(existing.rstrip() + "\n")
+    print("No supported windowrule lines found to migrate.")
+    raise SystemExit(0)
+
+stamp = datetime.datetime.now().isoformat(timespec="seconds")
+block = [
+    begin,
+    f"-- Auto-generated from {legacy_conf} at {stamp}",
+    "-- Review and keep only the rules you want.",
+]
+block.extend(lua_rules)
+block.append(end)
+
+with open(dst, "w", encoding="utf-8") as f:
+    out = existing.rstrip() + "\n\n" + "\n".join(block) + "\n"
+    f.write(out)
+
+print(f"Migrated {len(lua_rules)} rule(s) to {dst}")
+PY
 }
 
 sync_scripts() {
@@ -484,6 +616,17 @@ deploy_qml() {
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
+    case "${1:-}" in
+        -h|--help)
+            show_help
+            return
+            ;;
+        --migrate-rules)
+            migrate_rules_conf_to_lua
+            return
+            ;;
+    esac
+
     check_deps
 
     echo "┌─────────────────────────────────────────┐"

@@ -37,6 +37,14 @@ cd dots-hyprland
 
 Interactive TUI to select which custom Lua configs to generate for `~/.config/hypr/custom/`.
 
+Hyprland Lua transition note:
+
+- If you still have local rules in `~/.config/hypr/custom/rules.conf`, migrate common `windowrule` lines with:
+
+```bash
+./apply-custom.sh --migrate-rules
+```
+
 ## Staying Updated
 
 ```bash
