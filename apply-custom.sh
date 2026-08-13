@@ -121,6 +121,10 @@ hl.bind("SUPER + ALT + I", hl.dsp.exec_cmd("qs -c $qsConfig ipc call idle toggle
 hl.bind("SUPER + SHIFT + V", hl.dsp.global("quickshell:overviewClipboardToggle"), { description = "Utilities: Clipboard history >> clipboard" })
 hl.bind("SUPER + SHIFT + V", hl.dsp.exec_cmd("qs -c $qsConfig ipc call TEST_ALIVE || pkill fuzzel || cliphist list | fuzzel --match-mode fzf --dmenu | cliphist decode | wl-copy"))')
 
+KB_TAGS+=("omarchy_screensaver")
+KB_DESCS+=("Super+Shift+O: Launch LoveClaw omarchy screensaver (multi-monitor)")
+KB_CODE+=('hl.bind("SUPER + SHIFT + O", hl.dsp.exec_cmd(HOME .. "/.local/bin/omarchy-launch-screensaver"), { description = "LoveClaw: Screen saver" })')
+
 # Exec features
 declare -a EXEC_TAGS EXEC_DESCS EXEC_CODE
 
@@ -613,6 +617,80 @@ deploy_qml() {
     echo "  ✓ Deployed $count QML file(s) to $qs_live"
 }
 
+# ─── Omarchy screensaver ──────────────────────────────────────────────────────
+
+patch_hypridle_screensaver() {
+    local idle="$HOME/.config/hypr/hypridle.conf"
+    if [[ ! -f "$idle" ]]; then
+        echo "  ⚠ $idle not found, skipping hypridle patch"
+        return
+    fi
+    if grep -q 'omarchy-launch-screensaver' "$idle"; then
+        echo "  ✓ hypridle.conf already has screensaver listener"
+        return
+    fi
+    backup_file "$idle"
+    python3 - "$idle" <<'PY'
+import re, sys
+path = sys.argv[1]
+with open(path) as f:
+    content = f.read()
+# Comment out the lock-session listener so the screensaver takes over at 300s
+content = re.sub(
+    r'(?ms)^listener\s*\{[^}]*?loginctl lock-session[^}]*?\}',
+    lambda m: '\n'.join('# ' + line if line.strip() else line for line in m.group(0).splitlines()),
+    content,
+)
+listener = """
+listener {
+    timeout = 300 # 5mins - LoveClaw screensaver (multi-monitor)
+    on-timeout = ~/.local/bin/omarchy-launch-screensaver
+}
+"""
+content = content.rstrip() + "\n" + listener
+with open(path, "w") as f:
+    f.write(content)
+print("  ✓ Patched hypridle.conf with screensaver listener")
+PY
+}
+
+deploy_omarchy() {
+    local omarchy_cfg="$SCRIPT_DIR/dots/.config/omarchy"
+    local omarchy_bin="$SCRIPT_DIR/dots/.local/bin"
+    local live_cfg="$HOME/.config/omarchy"
+    local live_bin="$HOME/.local/bin"
+    local count=0
+
+    local missing=()
+    for dep in ttfx xdg-terminal-exec socat jq; do
+        command -v "$dep" >/dev/null || missing+=("$dep")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "  ⚠ omarchy screensaver deps missing: ${missing[*]}"
+        echo "    Install: sudo pacman -S ttfx socat jq && yay -S xdg-terminal-exec"
+    fi
+
+    if [[ -d "$omarchy_cfg" ]]; then
+        mkdir -p "$live_cfg"
+        cp -r "$omarchy_cfg/." "$live_cfg/"
+        ((count++))
+    fi
+
+    if [[ -d "$omarchy_bin" ]]; then
+        mkdir -p "$live_bin"
+        for s in "$omarchy_bin"/omarchy-*; do
+            [[ -f "$s" ]] || continue
+            cp "$s" "$live_bin/"
+            chmod +x "$live_bin/$(basename "$s")"
+            ((count++))
+        done
+    fi
+
+    patch_hypridle_screensaver
+
+    echo "  ✓ Deployed omarchy screensaver ($count file(s))"
+}
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 main() {
@@ -656,6 +734,13 @@ main() {
     patch_config_json
     sync_optional_assets
     deploy_qml
+
+    for tag in "${SELECTED_KB[@]}"; do
+        if [[ "$tag" == "omarchy_screensaver" ]]; then
+            deploy_omarchy
+            break
+        fi
+    done
 
     echo ""
     echo "Done! Reload to apply:"
