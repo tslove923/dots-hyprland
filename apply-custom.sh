@@ -21,6 +21,30 @@ check_deps() {
     [[ -d "$HYPR_CUSTOM" ]] || die "$HYPR_CUSTOM does not exist. Run the upstream installer first."
 }
 
+check_omarchy_screensaver_deps() {
+    local missing=()
+
+    command -v ttfx >/dev/null || missing+=("ttfx (build from omacom-io/ttfx)")
+    command -v xdg-terminal-exec >/dev/null || missing+=("xdg-terminal-exec (AUR)")
+    command -v socat >/dev/null || missing+=("socat")
+    command -v jq >/dev/null || missing+=("jq")
+
+    if ! fc-list :lang=ja 2>/dev/null | grep -q .; then
+        missing+=("Noto CJK fonts (noto-fonts-cjk)")
+    fi
+
+    if (( ${#missing[@]} > 0 )); then
+        echo "  ⚠ Omarchy screensaver prerequisites missing:"
+        for dep in "${missing[@]}"; do
+            echo "      - $dep"
+        done
+        echo "    Install hints: sudo pacman -S --needed socat jq noto-fonts-cjk && yay -S xdg-terminal-exec"
+        echo "    Missing CJK fonts will cause the matrix-like effect to drop glyphs."
+    else
+        echo "  ✓ Omarchy screensaver prerequisites satisfied"
+    fi
+}
+
 # Patch a JSON file using python3 (jq alternative without extra deps)
 json_set() {
     local file="$1" key="$2" value="$3"
@@ -656,6 +680,7 @@ main() {
     patch_config_json
     sync_optional_assets
     deploy_qml
+    check_omarchy_screensaver_deps
 
     echo ""
     echo "Done! Reload to apply:"
