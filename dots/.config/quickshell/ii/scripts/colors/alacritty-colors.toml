@@ -1,0 +1,35 @@
+# Alacritty color template. Placeholders like $term0 are replaced with hex
+# values from the generated material_colors.scss by applycolor.sh.
+# Do not edit ~/.config/alacritty/colors.toml directly — it is regenerated.
+
+[colors.primary]
+background = "#$term0 #"
+foreground = "#$term7 #"
+
+[colors.cursor]
+text = "#$term0 #"
+cursor = "#$term7 #"
+
+[colors.selection]
+text = "#$secondaryContainer #"
+background = "#$onSecondaryContainer #"
+
+[colors.normal]
+black = "#$term0 #"
+red = "#$term1 #"
+green = "#$term2 #"
+yellow = "#$term3 #"
+blue = "#$term4 #"
+magenta = "#$term5 #"
+cyan = "#$term6 #"
+white = "#$term7 #"
+
+[colors.bright]
+black = "#$term8 #"
+red = "#$term9 #"
+green = "#$term10 #"
+yellow = "#$term11 #"
+blue = "#$term12 #"
+magenta = "#$term13 #"
+cyan = "#$term14 #"
+white = "#$term15 #"

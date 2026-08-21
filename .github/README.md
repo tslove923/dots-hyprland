@@ -5,6 +5,9 @@
 
 A personal fork of end-4's dots-hyprland QuickShell configuration with custom features for Intel hardware monitoring, home automation, and daily-driver QoL improvements.
 
+> [!WARNING]
+> Hyprland 0.55 update: if your distro has not shipped Hyprland 0.55 yet, use the pre-Luaification branch or wait for the proper update path before switching. See the official install/update docs for the latest migration notes.
+
 All features live on `main` — no branch juggling required.
 
 ## Features
@@ -36,6 +39,11 @@ cd dots-hyprland
 ```
 
 Interactive TUI to select which custom Lua configs to generate for `~/.config/hypr/custom/`.
+
+### Hyprland 0.55 note
+
+- If your distro has not shipped Hyprland 0.55 yet, follow the upstream migration guidance before switching.
+- The repo still supports the custom touch and drawer additions, but the Lua entry points and dispatcher API should match the current illogical-impulse version.
 
 ## Staying Updated
 

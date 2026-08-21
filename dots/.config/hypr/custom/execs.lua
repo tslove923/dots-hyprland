@@ -1,20 +1,11 @@
--- Lua twin of custom/execs.conf touch additions for Hyprland 0.55+.
--- Loaded by require("custom.execs") from ~/.config/hypr/hyprland.lua.
---
--- NOTE: This file only contains the touch-related exec-once lines added on
--- archspectre. Other execs (nm-applet, etc.) belong in the upstream or
--- TUI-generated execs.lua. Merge as needed when you switch to Lua mode.
+-- Custom exec-once additions, loaded on top of hyprland/execs.lua.
+-- hyprland/execs.lua already starts: geoclue, qs (bar), wallpaper, keyring,
+-- hypridle, dbus-update-activation-environment, easyeffects, wl-paste
+-- cliphist, and setcursor. Only put NEW autostarts here, otherwise things
+-- (e.g. the quickshell bar) get started twice.
 
-hl.on("hyprland.start", function()
-  -- Hyprland plugin manager — loads plugins declared in hyprload.toml,
-  -- including hyprgrass (touch gestures). -n = non-interactive.
-  hl.exec_cmd("hyprpm reload -n")
-
-  -- Auto-rotate screen based on accelerometer input. Toggleable via
-  -- ~/.config/hypr/rotation-toggle (see toggle-rotation.sh keybind).
-  hl.exec_cmd("~/.config/hypr/custom/scripts/rotate-screen.sh")
-
-  -- nwg-drawer in --refresh mode for swipe-gesture triggers
-  -- (SIGUSR2 / SIGRTMIN+3).
-  hl.exec_cmd("nwg-drawer -r")
+hl.on("hyprland.start", function ()
+    -- Auto-rotate screen based on accelerometer input. Toggleable via
+    -- ~/.config/hypr/rotation-toggle (see toggle-rotation.sh keybind).
+    hl.exec_cmd("$HOME/.config/hypr/custom/scripts/rotate-screen.sh")
 end)

@@ -31,13 +31,23 @@ end
 if is_file_exists(HOME .. "/.config/hypr/custom/keybinds.lua") then
     require("custom.keybinds")
 end
-if is_file_exists(HOME .. "/.config/hypr/custom/touch.lua") then
-    require("custom.touch")
-end
+-- DISABLED (2026-08-21): hyprgrass/touch hangs login on Hyprland 0.56.
+-- Plugin load (via `hyprpm reload` in custom/execs.lua) and custom.touch
+-- are both off until the plugin is rebuilt for 0.56.
+-- if is_file_exists(HOME .. "/.config/hypr/custom/touch.lua") then
+--     local ok, err = pcall(require, "custom.touch")
+--     if not ok then
+--         print("[touch] custom.touch skipped: " .. tostring(err))
+--     end
+-- end
 
--- nwg-displays support: re-add the files if it updates later
--- require("workspaces")
--- require("monitors")
+-- nwg-displays support --
+if is_file_exists(HOME .. "/.config/hypr/workspaces.lua") then
+    require("workspaces")
+end
+if is_file_exists(HOME .. "/.config/hypr/monitors.lua") then
+    require("monitors")
+end
 
 -- Shell overrides --
 require("hyprland.shellOverrides.main")

@@ -24,7 +24,7 @@ hl.config({
     },
   },
   gestures = {
-    workspace_swipe_touch = true,
+    workspace_swipe_touch = false,
     workspace_swipe_cancel_ratio = 0.15,
   },
 })
@@ -52,12 +52,12 @@ hl.plugin.hyprgrass.bind {
 
 hl.plugin.hyprgrass.bind {
   pattern = {kind = "edge", origin = "u", direction = "d"},
-  action = hl.dsp.exec_cmd("pkill -SIGUSR2 nwg-drawer"),
+  action = hl.dsp.exec_cmd("~/.config/hypr/custom/scripts/toggle-drawer.sh"),
 }
 
 hl.plugin.hyprgrass.bind {
   pattern = {kind = "edge", origin = "u", direction = "u"},
-  action = hl.dsp.exec_cmd("pkill -SIGRTMIN+3 nwg-drawer"),
+  action = hl.dsp.exec_cmd("nwg-drawer -close"),
 }
 
 hl.plugin.hyprgrass.bind {
@@ -66,6 +66,11 @@ hl.plugin.hyprgrass.bind {
 }
 
 -- Multi-finger swipes
+hl.plugin.hyprgrass.gesture {
+  pattern = {kind = "swipe", fingers = 3, direction = "horizontal"},
+  action = "workspace",
+}
+
 hl.plugin.hyprgrass.gesture {
   pattern = {kind = "swipe", fingers = 4, direction = "down"},
   action = "close",
